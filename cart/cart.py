@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
-import binascii
 import json
 import hashlib
-import logging
 import os
 import struct
 import sys
@@ -16,7 +14,7 @@ from copy import deepcopy
 
 __build_major__ = 1
 __build_minor__ = 0
-__build_micro__ = 6
+__build_micro__ = 7
 __version__ = "CaRT v%d.%d.%d (Python %s)" % (__build_major__,
                                               __build_minor__,
                                               __build_micro__,
@@ -127,15 +125,12 @@ def pack_stream(istream, ostream, optional_header=None, optional_footer=None, au
     else:
         mandatory_header = struct.pack(MANDATORY_HEADER_FMT, CART_MAGIC, VERSION, RESERVED, arc4_key, opt_header_len)
 
-    logging.debug('mandatory header starts at %d', pos)
     pos += _write(ostream, mandatory_header)
 
-    logging.debug('optional header starts at %d', pos)
     if opt_header_len:
         pos += _write(ostream, opt_header_crypt)
 
     # restart the RC4 stream for binary stream
-    logging.debug('binary payload stream starts at %d', pos)
     cipher = ARC4.new(arc4_key)
     bz = zlib.compressobj(zlib.Z_BEST_SPEED)
     while True:
@@ -166,19 +161,16 @@ def pack_stream(istream, ostream, optional_header=None, optional_footer=None, au
 
     opt_footer_pos = pos
     opt_footer_len = 0
-    logging.debug('opt footer starts at %d', opt_footer_pos)
     if optional_footer:
         # restart the RC4 stream for the footer.
         cipher = ARC4.new(arc4_key)
         opt_footer_json = json.dumps(optional_footer, separators=(",", ":"), sort_keys=True)
         ciphered_footer = cipher.encrypt(opt_footer_json)
-        logging.debug("CFOOT: %s", binascii.hexlify(ciphered_footer))
         opt_footer_len = len(ciphered_footer)
         pos += _write(ostream, ciphered_footer)
 
     mandatory_footer = struct.pack(MANDATORY_FOOTER_FMT, TRAC_MAGIC, 0, opt_footer_pos, opt_footer_len)
 
-    logging.debug('mandatory footer starts at %d', pos)
     pos += _write(ostream, mandatory_footer)
 
 
@@ -202,8 +194,6 @@ def _unpack_header(istream, arc4_key_override=None):
         arc4_key = arc4_key_override
 
     # Read and unpack any optional header.
-    logging.debug('mandtory header read now at %d', pos)
-    logging.debug('mandatory header indicates opt header is len: %d', opt_header_len)
     optional_header = {}
     if opt_header_len:
         cipher = ARC4.new(arc4_key)
@@ -226,7 +216,6 @@ def unpack_stream(istream, ostream, arc4_key_override=None):
     # Optional header and rest of document are RC4'd
     (arc4_key, optional_header, pos) = _unpack_header(istream, arc4_key_override=arc4_key_override)
 
-    logging.debug('reading binary stream starting at: %d', pos)
     # Read / Unpack / Output the binary stream 1 block at a time.
     cipher = ARC4.new(arc4_key)
     bz = zlib.decompressobj()
@@ -246,24 +235,18 @@ def unpack_stream(istream, ostream, arc4_key_override=None):
             last_chunk += crypt_chunk
 
     # unused data will be the
-    logging.debug('length of final crypt chunk: %d', len(last_chunk))
     footer_offset = len(last_chunk) - struct.calcsize(MANDATORY_FOOTER_FMT)
 
     mandatory_footer_raw = last_chunk[footer_offset:]
     (magic, _reserved, opt_footer_pos, opt_footer_len) = struct.unpack(MANDATORY_FOOTER_FMT, mandatory_footer_raw)
 
     opt_footer_offset = footer_offset - opt_footer_len
-    logging.debug('footer magic: %s', magic)
-    logging.debug('opt_footer_offset in last chunk: %d', opt_footer_offset)
-    logging.debug('opt_footer_pos: %d', opt_footer_pos)
-    logging.debug('opt_footer_len: %d', opt_footer_len)
 
     optional_footer = {}
     if opt_footer_len:
         cipher = ARC4.new(arc4_key)
         optional_crypt = last_chunk[opt_footer_offset:opt_footer_offset + opt_footer_len]
 
-        logging.debug('opt footer crypt: %s', binascii.hexlify(optional_crypt))
         optional_footer_json = cipher.decrypt(optional_crypt)
         if sys.version_info[0] == 3:
             optional_footer_json = optional_footer_json.decode()
