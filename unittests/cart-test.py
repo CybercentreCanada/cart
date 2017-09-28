@@ -2,6 +2,7 @@
 
 import cart
 import struct
+import tempfile
 import unittest
 
 from StringIO import StringIO
@@ -113,7 +114,8 @@ class TestCart(unittest.TestCase):
         ct_stream = StringIO(crypt_text)
         pt_stream = StringIO()
 
-        with open('/tmp/test.cart', 'wb') as f:
+        temp_file = tempfile.mkstemp()[1]
+        with open(temp_file, 'wb') as f:
             f.write(ct_stream.getvalue())
 
         (header, footer) = cart.unpack_stream(ct_stream, pt_stream)
@@ -127,7 +129,7 @@ class TestCart(unittest.TestCase):
         plaintext_prime = pt_stream.getvalue()
         self.assertEqual(plaintext_prime, plaintext)
 
-        metadata = cart.get_metadata_only("/tmp/test.cart")
+        metadata = cart.get_metadata_only(temp_file)
         self.assertEqual(metadata, inline_metadata)
         self.assertTrue(cart.is_cart(crypt_text))
 

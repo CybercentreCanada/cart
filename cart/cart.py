@@ -220,7 +220,7 @@ def unpack_stream(istream, ostream, arc4_key_override=None):
     # Read / Unpack / Output the binary stream 1 block at a time.
     cipher = ARC4.new(arc4_key)
     bz = zlib.decompressobj()
-    last_chunk = None
+    last_chunk = ''
     while True:
         crypt_chunk = istream.read(BLOCK_SIZE)
         pos += len(crypt_chunk)

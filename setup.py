@@ -29,7 +29,7 @@ setup(
         'Programming Language :: Python :: 3.4',
     ],
     keywords='neutering format malware cart stix development gc canada cse-cst cse cst',
-    packages=find_packages(exclude=['docs', 'unittest']),
+    packages=find_packages(exclude=['docs', 'unittests']),
     install_requires=['pycrypto'],
     entry_points={
         'console_scripts': [
