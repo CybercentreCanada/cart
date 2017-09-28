@@ -14,7 +14,7 @@ from copy import deepcopy
 
 __build_major__ = 1
 __build_minor__ = 0
-__build_micro__ = 7
+__build_micro__ = 8
 __version__ = "CaRT v%d.%d.%d (Python %s)" % (__build_major__,
                                               __build_minor__,
                                               __build_micro__,
@@ -80,6 +80,7 @@ class LengthCounter(object):
 
     def hexdigest(self):
         return str(self.length)
+
 
 # Digesters must follow a subset of the hashlib interface:
 #
@@ -319,7 +320,7 @@ def is_cart(buff):
             return True
         else:
             return False
-    except:
+    except Exception:
         return False
 
 
@@ -447,7 +448,7 @@ def main():
                 # noinspection PyBroadException
                 try:
                     cur_metadata = get_metadata_only(cur_file, arc4_key_override=rc4_override)
-                except:
+                except Exception:
                     print("ERR: Could not extract header from CaRT file '%s'. Invalid RC4 key!" % cur_file)
                     if len(args) > 1:
                         continue
@@ -475,7 +476,7 @@ def main():
                     # noinspection PyBroadException
                     try:
                         os.makedirs(os.path.dirname(output_file))
-                    except:
+                    except Exception:
                         pass
 
                     header, footer = unpack_file(cur_file, output_file, arc4_key_override=rc4_override)
@@ -516,7 +517,7 @@ def main():
                     # noinspection PyBroadException
                     try:
                         os.makedirs(os.path.dirname(output_file))
-                    except:
+                    except Exception:
                         pass
 
                     if not cur_header.get("name", None):
@@ -530,6 +531,7 @@ def main():
                             os.unlink(meta_file_path)
 
                     output_file = None
+
 
 if __name__ == '__main__':
     main()
