@@ -14,6 +14,21 @@ footer
 * SIZE: CaRT files are usually smaller then the original files because it uses compression. (Except in the case we you 
 store huge amount of metadata in the CaRT)
 
+## Using CaRT with stix v2
+Now that stix v2 uses JSON as encoding, you can now bundle your stix report directly in the CaRT format. When CaRT encode files, it add metadata from *.cartmeta file with the same prefix of your file. Therefor if you save your stix report to a .cartmeta file, the resulting CaRT file will have the full stix report embedded with it.
+
+Example:
+
+    $ ls
+      file.exe            - File I want to encode
+      file.exe.cartmeta   - Stix report of file.exe
+
+    $ cart file.exe
+    $ ls
+      file.exe            - File I want to encode
+      file.exe.cartmeta   - Stix report of file.exe
+      file.exe.cart       - CaRT file containig both the file.exe and it's stix report
+
 ## Format Overview
 
 ### Mandatory Header (38 bytes)
