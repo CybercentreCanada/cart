@@ -111,3 +111,112 @@ The CaRT configuration file look like this:
     [default_header]
     poc: Your Name
     poc_email: your.name@your.org
+
+------------------------------------------------------------------------------------------------------------------
+
+# CaRT (Compressed and RC4 Transport)
+Le format de fichier CaRT permet de stocker et de transférer les maliciels et les métadonnées connexes.
+Il neutralise les maliciels de manière à ce qu’ils puissent être exécutés et chiffrés pour que le logiciel antivirus ne signale pas le fichier CaRT comme étant un maliciel.
+
+## Avantages
+
+* RAPIDE : Il est aussi rapide d’utiliser CaRT que de compresser un fichier.
+* DIFFUSION EN CONTINU : CaRT utilise zlib et RC4, ce qui permet de coder les fichiers en cours de diffusion.
+* MÉTADONNÉES : CaRT peut stocker les métadonnées d’un fichier dans le même fichier que le fichier lui-même; les métadonnées peuvent être lues sans qu'il soit nécessaire de lire le fichier en entier.
+* CALCULS DE HACHAGE : CaRT calcule les condensés numériques du fichier parallèlement au codage du fichier, puis stocke l’information dans le pied de page.
+* TAILLE : La taille des fichiers CaRT est généralement inférieure à celle des fichiers d’origine, puisqu’ils sont compressés (à moins qu’une grande quantité de métadonnées aient été stockées dans le CaRT).
+
+## Utilisation de CaRT avec STIX v2
+Maintenant que la version 2 de STIX utilise JSON aux fins de codage, vous pouvez grouper vos rapports STIX directement dans le format CaRT. Lorsque CaRT code les fichiers, il ajoute les métadonnées depuis le fichier *.cartmeta avec le même préfixe que celui utilisé par votre fichier. Par conséquent, si vous enregistrez votre rapport STIX dans un fichier .cartmeta, le rapport complet sera intégré dans le fichier CaRT résultant.
+
+Par exemple :
+
+    $ ls
+      file.exe            - Fichier à coder
+      file.exe.cartmeta   - Rapport STIX du fichier file.exe
+
+    $ cart file.exe
+    $ ls
+      file.exe            - Fichier à coder
+      file.exe.cartmeta   - Rapport STIX du fichier file.exe
+      file.exe.cart       - Fichier CaRT contenant à la fois le fichier file.exe et son rapport STIX
+
+## Aperçu du format
+
+### En-tête obligatoire (38 octets)
+
+CaRT comporte un en-tête obligatoire qui ressemble à ce qui suit :
+
+     4s     h         Q        16s         Q
+    CART<VERSION><RESERVED><ARC4KEY><OPT_HEADER_LEN>
+
+Dans cet en-tête, la valeur de VERSION est 1 et celle de RESERVED est 0. Dans la plupart des cas, la clé RC3 utilisée pour déchiffrer le fichier y est stockée et elle est toujours la même (deux fois les 8 premiers chiffres de la valeur pi). CaRT propose toutefois une façon de remplacer la clé, laquelle consiste à stocker des octets nuls dans l’en-tête obligatoire. Vous devrez alors connaître la clé pour décoder le fichier CaRT.
+
+### En-tête facultatif (OPT_HEADER_LEN octets)
+
+L’en-tête facultatif de CaRT est un objet blob RC4 de OPT_HEADER_LEN octets tiré de l’en-tête sérialisé json
+
+    RC4(<JSON_SERIALIZED_OPTIONAL_HEADER>)
+
+### Bloc de données (N octets)
+
+Le bloc de données de CaRT est d’abord une bibliothèque logicielle de compression de données (zlib), puis un bloc RC4
+
+    RC4(ZLIB(block encoded stream))
+
+### Pied de page facultatif (OPTIONAL_FOOTER_LEN octets)
+
+Comme c’est le cas dans l’en-tête facultatif, le pied de page facultatif de CaRT est un objet blob RC4 de OPT_FOOTER_LEN octets tiré de l’en-tête sérialisé json
+
+    RC4(<JSON_SERIALIZED_OPTIONAL_FOOTER>)
+
+###  Pied de page obligatoire (32 octets)
+
+Le ficher CaRT se termine par un pied de page obligatoire qui permet au format de lire le pied de page et de renvoyer les condensés numériques sans avoir à lire le fichier en entier :
+
+     4s      QQ           Q
+    TRAC<RESERVED><OPT_FOOTER_LEN>
+
+## Interface de ligne de commande
+
+En installant le gestionnaire de paquets pip, vous pouvez accéder à la bibliothèque de CaRT et au CLI de CaRT.
+
+Le CLI de CaRT accorde les priorités suivantes à ses options :
+
+* Des valeurs par défaut sont définies pour toutes les options à partir du CLI
+* Les valeurs par défaut sont remplacées par des options dans ~/.cart/cart.cfg
+* Les valeurs dans le fichier de configuration sont remplacées par les options du CLI
+
+Des options sont disponibles dans le CLI de CaRT :
+
+    Usage : cart [options] fichier1 fichier2 ... fichierN
+
+    Options :
+      --version             afficher le numéro de version du programme et quitter
+      -h, --help            afficher ce message d’aide et quitter
+      -f, --force           remplacer le fichier de sortie s’il existe déjà
+      -i, --ignore          Ignorer la clé RC4 dans le fichier conf
+      -j JSONMETA, --jsonmeta=JSONMETA
+                            Fournir les métadonnées de l’en-tête sous forme d’objet blob json
+      -k KEY, --key=KEY     Utiliser la clé RC4 privée (codé en Base64). La même clé doit être saisie pour décompresser le fichier CaRT.
+      -m, --meta            Conserver les métadonnées lors de l’extraction des fichiers CaRT
+      -n FILENAME, --name=FILENAME
+                            Utiliser cette valeur comme nom de fichier des métadonnées
+      -o OUTFILE, --outfile=OUTFILE
+                            Définir le fichier de sortie
+      -s, --showmeta        Afficher uniquement les métadonnées du fichier
+
+Le fichier de configuration du CaRT ressemble à ce qui suit :
+
+    [global]
+    # rc4_key est une représentation en Base64 de votre clé
+    rc4_key: AvUzYXNkZg==
+    # keep_meta est un équivalent de -m dans le CLI
+    keep_meta: True
+    # force est un équivalent de -f dans le CLI
+    force: True
+
+    # default_header est une paire de données clé/valeur à ajouter à l’en-tête facultatif du fichier CaRT
+    [default_header]
+    poc: Votre nom
+    poc_email: votre.nom@votre.org
