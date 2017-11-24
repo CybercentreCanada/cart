@@ -14,7 +14,7 @@ from copy import deepcopy
 
 __build_major__ = 1
 __build_minor__ = 0
-__build_micro__ = 8
+__build_micro__ = 9
 __version__ = "CaRT v%d.%d.%d (Python %s)" % (__build_major__,
                                               __build_minor__,
                                               __build_micro__,
