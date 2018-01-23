@@ -13,8 +13,8 @@ from Crypto.Cipher import ARC4
 from copy import deepcopy
 
 __build_major__ = 1
-__build_minor__ = 0
-__build_micro__ = 9
+__build_minor__ = 1
+__build_micro__ = 0
 __version__ = "CaRT v%d.%d.%d (Python %s)" % (__build_major__,
                                               __build_minor__,
                                               __build_micro__,
@@ -68,6 +68,14 @@ SAMPLE_OPTIONAL_FOOTER = {
 }
 
 BLOCK_SIZE = 64 * 1024
+
+
+class InvalidCARTException(Exception):
+    pass
+
+
+class InvalidARC4KeyException(Exception):
+    pass
 
 
 class LengthCounter(object):
@@ -186,10 +194,14 @@ def _unpack_header(istream, arc4_key_override=None):
     mandatory_header_len = struct.calcsize(MANDATORY_HEADER_FMT)
     mandatory_header = istream.read(mandatory_header_len)
     pos += mandatory_header_len
-    (_magic, _version, _reserved, arc4_key, opt_header_len) = struct.unpack(
-        MANDATORY_HEADER_FMT, mandatory_header)
+    try:
+        (_magic, _version, _reserved, arc4_key, opt_header_len) = struct.unpack(
+            MANDATORY_HEADER_FMT, mandatory_header)
+    except Exception:
+        raise InvalidCARTException("Could not unpack mandatory header")
+
     if _magic != CART_MAGIC or _version != 1 or _reserved != 0:
-        raise TypeError("This is not valid CaRT file")
+        raise InvalidCARTException("Could not validate mandatory header")
 
     if arc4_key_override:
         arc4_key = arc4_key_override
@@ -206,7 +218,7 @@ def _unpack_header(istream, arc4_key_override=None):
         try:
             optional_header = json.loads(optional_header_json)
         except ValueError:
-            raise ValueError("Invalid ARC4 Key, could not unpack header")
+            raise InvalidARC4KeyException("Could not decrypt header with the given ARC4 key")
     return arc4_key, optional_header, pos
 
 
@@ -239,7 +251,14 @@ def unpack_stream(istream, ostream, arc4_key_override=None):
     footer_offset = len(last_chunk) - struct.calcsize(MANDATORY_FOOTER_FMT)
 
     mandatory_footer_raw = last_chunk[footer_offset:]
-    (magic, _reserved, opt_footer_pos, opt_footer_len) = struct.unpack(MANDATORY_FOOTER_FMT, mandatory_footer_raw)
+
+    try:
+        (_magic, _reserved, opt_footer_pos, opt_footer_len) = struct.unpack(MANDATORY_FOOTER_FMT, mandatory_footer_raw)
+    except Exception:
+        raise InvalidCARTException("Could not unpack mandatory footer")
+
+    if _magic != TRAC_MAGIC or _reserved != 0:
+        raise InvalidCARTException("Could not validate mandatory footer")
 
     opt_footer_offset = footer_offset - opt_footer_len
 
@@ -251,7 +270,10 @@ def unpack_stream(istream, ostream, arc4_key_override=None):
         optional_footer_json = cipher.decrypt(optional_crypt)
         if sys.version_info[0] == 3:
             optional_footer_json = optional_footer_json.decode()
-        optional_footer = json.loads(optional_footer_json)
+        try:
+            optional_footer = json.loads(optional_footer_json)
+        except ValueError:
+            raise InvalidARC4KeyException('Could not decrypt footer with the given ARC4 key')
     return optional_header, optional_footer
 
 
@@ -294,8 +316,15 @@ def get_metadata_only(input_path, arc4_key_override=None):
         mandatory_footer_size = struct.calcsize(MANDATORY_FOOTER_FMT)
         fin.seek(-1 * mandatory_footer_size, os.SEEK_END)
         mandatory_footer_raw = fin.read(mandatory_footer_size)
-        (_magic, _reserved, opt_footer_pos, opt_footer_len) = struct.unpack(
-            MANDATORY_FOOTER_FMT, mandatory_footer_raw)
+        try:
+            (_magic, _reserved, opt_footer_pos, opt_footer_len) = struct.unpack(
+                MANDATORY_FOOTER_FMT, mandatory_footer_raw)
+        except Exception:
+            raise InvalidCARTException("Could not unpack mandatory footer")
+
+        if _magic != TRAC_MAGIC or _reserved != 0:
+            raise InvalidCARTException("Could not validate mandatory footer")
+
         if opt_footer_len:
             fin.seek(opt_footer_pos)
             opt_footer_raw = fin.read(opt_footer_len)
@@ -304,7 +333,10 @@ def get_metadata_only(input_path, arc4_key_override=None):
 
             if sys.version_info[0] == 3:
                 optional_footer_json = optional_footer_json.decode()
-            optional_footer = json.loads(optional_footer_json)
+            try:
+                optional_footer = json.loads(optional_footer_json)
+            except ValueError:
+                raise InvalidARC4KeyException("Could not decrypt footer with the given ARC4 key")
             metadata.update(optional_footer)
 
     return metadata
