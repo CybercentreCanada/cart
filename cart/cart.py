@@ -14,7 +14,7 @@ from copy import deepcopy
 
 __build_major__ = 1
 __build_minor__ = 1
-__build_micro__ = 1
+__build_micro__ = 2
 __version__ = "CaRT v%d.%d.%d (Python %s)" % (__build_major__,
                                               __build_minor__,
                                               __build_micro__,
@@ -481,7 +481,7 @@ def main():
                 try:
                     cur_metadata = get_metadata_only(cur_file, arc4_key_override=rc4_override)
                 except Exception as e:
-                    print("ERR: Could not extract header from CaRT file '%s'. [%s]" % (cur_file, e.message))
+                    print("ERR: Could not extract metadata from CaRT file '%s'. [%s]" % (cur_file, e.message))
                     if len(args) > 1:
                         continue
                     else:
