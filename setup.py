@@ -11,7 +11,7 @@ setup(
     description='CaRT Neutering format',
     long_description="Compressed and RC4 Transport (CaRT) Neutering format. This is a file format that is used to "
                      "neuter malware files for distribution in the malware analyst community.",
-    url='https://github.com/CommunicationsSecurityEstablishment/cart',
+    url='https://bitbucket.org/cse-assemblyline/cart',
     author='CSE-CST Assemblyline development team',
     author_email='assemblyline-cse-cst@googlegroups.com',
     license='MIT',
