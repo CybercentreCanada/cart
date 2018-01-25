@@ -14,7 +14,7 @@ from copy import deepcopy
 
 __build_major__ = 1
 __build_minor__ = 1
-__build_micro__ = 3
+__build_micro__ = 4
 __version__ = "CaRT v%d.%d.%d (Python %s)" % (__build_major__,
                                               __build_minor__,
                                               __build_micro__,
@@ -240,7 +240,10 @@ def unpack_stream(istream, ostream, arc4_key_override=None):
             break
 
         zchunk = cipher.decrypt(crypt_chunk)
-        maybe_ochunk = bz.decompress(zchunk)
+        try:
+            maybe_ochunk = bz.decompress(zchunk)
+        except Exception:
+            raise InvalidCARTException("Unable to decompress payload")
         if maybe_ochunk:
             ostream.write(maybe_ochunk)
             last_chunk = crypt_chunk
@@ -511,18 +514,27 @@ def main():
                     except Exception:
                         pass
 
-                    header, footer = unpack_file(cur_file, output_file, arc4_key_override=rc4_override)
-                    if keep_meta:
-                        outmeta = {}
-                        outmeta.update(header)
-                        outmeta.update(footer)
-                        output_meta_file = open(output_file+".cartmeta", "wb")
-                        output_meta_file.write(json.dumps(outmeta, sort_keys=True, indent=4))
-                        output_meta_file.close()
-                    
-                    if delete:
-                        os.unlink(cur_file)
-                    
+                    try:
+                        header, footer = unpack_file(cur_file, output_file, arc4_key_override=rc4_override)
+
+                        if keep_meta:
+                            outmeta = {}
+                            outmeta.update(header)
+                            outmeta.update(footer)
+                            output_meta_file = open(output_file + ".cartmeta", "wb")
+                            output_meta_file.write(json.dumps(outmeta, sort_keys=True, indent=4))
+                            output_meta_file.close()
+
+                        if delete:
+                            os.unlink(cur_file)
+
+                    except Exception as e:
+                        print("ERR: Could not extract embedded file from CaRT file '%s'. [%s]" % (cur_file, e.message))
+                        if len(args) > 1:
+                            continue
+                        else:
+                            exit(5)
+
                     output_file = None
             else:
                 if show_meta:
