@@ -14,7 +14,7 @@ from copy import deepcopy
 
 __build_major__ = 1
 __build_minor__ = 1
-__build_micro__ = 4
+__build_micro__ = 5
 __version__ = "CaRT v%d.%d.%d (Python %s)" % (__build_major__,
                                               __build_minor__,
                                               __build_micro__,
@@ -48,9 +48,12 @@ DEFAULT_ARC4_KEY = b'\x03\x01\x04\x01\x05\x09\x02\x06' * 2   # First 8 digits of
 if sys.version_info[0] == 2:
     CART_MAGIC = "CART"
     TRAC_MAGIC = "TRAC"
+    text_type = unicode
 else:
     CART_MAGIC = b"CART"
     TRAC_MAGIC = b"TRAC"
+    text_type = str
+
 
 # Must be a dictionary of string to json_serialiable_python_object.
 SAMPLE_OPTIONAL_HEADER = {
@@ -68,6 +71,12 @@ SAMPLE_OPTIONAL_FOOTER = {
 }
 
 BLOCK_SIZE = 64 * 1024
+
+
+def binary(data):
+    if isinstance(data, text_type):
+        return data.encode('utf-8')
+    return data
 
 
 class InvalidCARTException(Exception):
@@ -114,7 +123,7 @@ def pack_stream(istream, ostream, optional_header=None, optional_footer=None, au
     if optional_header is None:
         optional_header = {}
 
-    arc4_key = arc4_key_override or DEFAULT_ARC4_KEY
+    arc4_key = binary(arc4_key_override or DEFAULT_ARC4_KEY)
     digesters = [algo() for algo in auto_digests]
 
     # Build the optional header first if necessary. We need to know
@@ -126,11 +135,11 @@ def pack_stream(istream, ostream, optional_header=None, optional_footer=None, au
     if optional_header:
         cipher = ARC4.new(arc4_key)
         opt_header_json = json.dumps(optional_header, separators=(",", ":"), sort_keys=True)
-        opt_header_crypt = cipher.encrypt(opt_header_json)
+        opt_header_crypt = cipher.encrypt(binary(opt_header_json))
         opt_header_len = len(opt_header_crypt)
 
     if arc4_key_override:
-        mandatory_header = struct.pack(MANDATORY_HEADER_FMT, CART_MAGIC, VERSION, RESERVED, "\x00"*16, opt_header_len)
+        mandatory_header = struct.pack(MANDATORY_HEADER_FMT, CART_MAGIC, VERSION, RESERVED, b"\x00"*16, opt_header_len)
     else:
         mandatory_header = struct.pack(MANDATORY_HEADER_FMT, CART_MAGIC, VERSION, RESERVED, arc4_key, opt_header_len)
 
@@ -174,7 +183,7 @@ def pack_stream(istream, ostream, optional_header=None, optional_footer=None, au
         # restart the RC4 stream for the footer.
         cipher = ARC4.new(arc4_key)
         opt_footer_json = json.dumps(optional_footer, separators=(",", ":"), sort_keys=True)
-        ciphered_footer = cipher.encrypt(opt_footer_json)
+        ciphered_footer = cipher.encrypt(binary(opt_footer_json))
         opt_footer_len = len(ciphered_footer)
         pos += _write(ostream, ciphered_footer)
 
@@ -204,7 +213,7 @@ def _unpack_header(istream, arc4_key_override=None):
         raise InvalidCARTException("Could not validate mandatory header")
 
     if arc4_key_override:
-        arc4_key = arc4_key_override
+        arc4_key = binary(arc4_key_override)
 
     # Read and unpack any optional header.
     optional_header = {}
@@ -213,9 +222,9 @@ def _unpack_header(istream, arc4_key_override=None):
         optional_header_crypt = istream.read(opt_header_len)
         pos += opt_header_len
         optional_header_json = cipher.decrypt(optional_header_crypt)
-        if sys.version_info[0] == 3:
-            optional_header_json = optional_header_json.decode()
         try:
+            if sys.version_info[0] == 3:
+                optional_header_json = optional_header_json.decode()
             optional_header = json.loads(optional_header_json)
         except ValueError:
             raise InvalidARC4KeyException("Could not decrypt header with the given ARC4 key")
@@ -232,7 +241,7 @@ def unpack_stream(istream, ostream, arc4_key_override=None):
     # Read / Unpack / Output the binary stream 1 block at a time.
     cipher = ARC4.new(arc4_key)
     bz = zlib.decompressobj()
-    last_chunk = ''
+    last_chunk = b''
     while True:
         crypt_chunk = istream.read(BLOCK_SIZE)
         pos += len(crypt_chunk)
@@ -557,7 +566,7 @@ def main():
                     meta_file_path = cur_file + ".cartmeta"
                     if os.path.exists(meta_file_path):
                         cur_header.update(json.loads(open(meta_file_path, 'rb').read()))
-                    
+
                     # noinspection PyBroadException
                     try:
                         os.makedirs(os.path.dirname(output_file))
@@ -568,7 +577,7 @@ def main():
                         cur_header['name'] = os.path.basename(cur_file)
 
                     pack_file(cur_file, output_file, optional_header=cur_header, arc4_key_override=rc4_override)
-                    
+
                     if delete:
                         os.unlink(cur_file)
                         if os.path.exists(meta_file_path):
