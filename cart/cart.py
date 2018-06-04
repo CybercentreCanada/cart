@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 
 import json
 import hashlib
@@ -12,13 +12,14 @@ import zlib
 from Crypto.Cipher import ARC4
 from copy import deepcopy
 
-__build_major__ = 1
-__build_minor__ = 1
-__build_micro__ = 5
-__version__ = "CaRT v%d.%d.%d (Python %s)" % (__build_major__,
-                                              __build_minor__,
-                                              __build_micro__,
-                                              ".".join([str(x) for x in sys.version_info[:3]]))
+import cart.version as version
+
+__version__ = "CaRT v%d.%d.%d (Python %s)" % (
+    version.major,
+    version.minor,
+    version.micro,
+    ".".join([str(x) for x in sys.version_info[:3]])
+)
 
 
 # Format Overview
@@ -42,7 +43,7 @@ __version__ = "CaRT v%d.%d.%d (Python %s)" % (__build_major__,
 MANDATORY_HEADER_FMT = '<4shQ16sQ'
 MANDATORY_FOOTER_FMT = '<4sQQQ'
 
-VERSION = __build_major__
+VERSION = version.major
 RESERVED = 0
 DEFAULT_ARC4_KEY = b'\x03\x01\x04\x01\x05\x09\x02\x06' * 2   # First 8 digits of PI twice.
 if sys.version_info[0] == 2:
