@@ -365,15 +365,13 @@ def main():
     if sys.version_info[0] == 2:
         # noinspection PyUnresolvedReferences,PyPep8Naming
         import ConfigParser as configparser
-        # noinspection PyUnresolvedReferences
         import peeker
     else:
         # noinspection PyUnresolvedReferences
         import configparser
-        # noinspection PyUnresolvedReferences
         import cart.peeker as peeker
 
-    from optparse import OptionParser
+    from argparse import ArgumentParser
 
     header_defaults = {}
     delete = False
@@ -400,25 +398,27 @@ def main():
             for option in config.options(section):
                 header_defaults[option] = config.get(section, option)
 
-    usage = "usage: %prog [options] file1 file2 ... fileN"
-    parser = OptionParser(usage=usage, version=__version__)
-    parser.add_option("-d", "--delete", action="store_true", dest="delete", default=False,
-                      help="Delete original after operation succeeded")
-    parser.add_option("-f", "--force", action="store_true", dest="force", default=False,
-                      help="Replace output file if it already exists")
-    parser.add_option("-i", "--ignore", action="store_true", dest="ignore", default=False,
-                      help="Ignore RC4 key from conf file")
-    parser.add_option("-j", "--jsonmeta", dest="jsonmeta", help="Provide header metadata as json blob")
-    parser.add_option("-k", "--key", dest="key", help="Use private RC4 key (base64 encoded). "
-                                                      "Same key must be provided to unCaRT.")
-    parser.add_option("-m", "--meta", action="store_true", dest="meta", default=False,
-                      help="Keep metadata around when extracting CaRTs")
-    parser.add_option("-n", "--name", dest="filename", help="Use this value as metadata filename")
-    parser.add_option("-o", "--outfile", dest="outfile", help="Set output file")
-    parser.add_option("-s", "--showmeta", action="store_true", dest="showmeta", default=False,
-                      help="Only show the file metadata")
+    parser = ArgumentParser()
+    parser.add_argument('files', metavar='file', nargs='+')
+    parser.add_argument("-v", "--version", action='version', version=__version__)
+    parser.add_argument("-d", "--delete", action="store_true", dest="delete", default=delete,
+                        help="Delete original after operation succeeded")
+    parser.add_argument("-f", "--force", action="store_true", dest="force", default=force,
+                        help="Replace output file if it already exists")
+    parser.add_argument("-i", "--ignore", action="store_true", dest="ignore", default=False,
+                        help="Ignore RC4 key from conf file")
+    parser.add_argument("-j", "--jsonmeta", dest="jsonmeta", help="Provide header metadata as json blob")
+    parser.add_argument("-k", "--key", dest="key", help="Use private RC4 key (base64 encoded). "
+                                                        "Same key must be provided to unCaRT.")
+    parser.add_argument("-m", "--meta", action="store_true", dest="meta", default=keep_meta,
+                        help="Keep metadata around when extracting CaRTs")
+    parser.add_argument("-n", "--name", dest="filename", help="Use this value as metadata filename")
+    parser.add_argument("-o", "--outfile", dest="outfile", help="Set output file")
+    parser.add_argument("-s", "--showmeta", action="store_true", dest="showmeta", default=False,
+                        help="Only show the file metadata")
 
-    (options, args) = parser.parse_args()
+    options = parser.parse_args()
+    args = options.files
 
     stream_mode = False
     if not args:
@@ -427,10 +427,10 @@ def main():
         else:
             parser.print_help()
             exit()
-    
-    delete = options.delete or delete
-    force = options.force or force
-    keep_meta = options.meta or keep_meta
+
+    delete = options.delete
+    force = options.force
+    keep_meta = options.meta
     if options.key:
         rc4_override = base64.b64decode(options.key)
     if rc4_override:

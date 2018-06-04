@@ -1,10 +1,10 @@
 import sys
+import os
 
 if sys.version_info[0] == 2:
     import cStringIO as io
 else:
     import io
-import os
 
 
 class Peeker(object):
