@@ -1,13 +1,16 @@
 """CaRT PiP Installer"""
 
 from setuptools import setup, find_packages
-from cart import cart
+
+import os.path
+here = os.path.abspath(os.path.dirname(__file__))
+major, minor, micro = 0, 0, 0
+exec(open(os.path.join(here, 'cart/version.py')).read())
+
 
 setup(
     name='cart',
-    version='%s.%s.%s' % (cart.__build_major__, 
-                          cart.__build_minor__, 
-                          cart.__build_micro__),
+    version='%s.%s.%s' % (major, minor, micro),
     description='CaRT Neutering format',
     long_description="Compressed and RC4 Transport (CaRT) Neutering format. This is a file format that is used to "
                      "neuter malware files for distribution in the malware analyst community.",

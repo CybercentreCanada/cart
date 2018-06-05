@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 
 import json
 import hashlib
@@ -12,13 +12,14 @@ import zlib
 from Crypto.Cipher import ARC4
 from copy import deepcopy
 
-__build_major__ = 1
-__build_minor__ = 1
-__build_micro__ = 4
-__version__ = "CaRT v%d.%d.%d (Python %s)" % (__build_major__,
-                                              __build_minor__,
-                                              __build_micro__,
-                                              ".".join([str(x) for x in sys.version_info[:3]]))
+import cart.version as version
+
+__version__ = "CaRT v%d.%d.%d (Python %s)" % (
+    version.major,
+    version.minor,
+    version.micro,
+    ".".join([str(x) for x in sys.version_info[:3]])
+)
 
 
 # Format Overview
@@ -42,15 +43,18 @@ __version__ = "CaRT v%d.%d.%d (Python %s)" % (__build_major__,
 MANDATORY_HEADER_FMT = '<4shQ16sQ'
 MANDATORY_FOOTER_FMT = '<4sQQQ'
 
-VERSION = __build_major__
+VERSION = version.major
 RESERVED = 0
 DEFAULT_ARC4_KEY = b'\x03\x01\x04\x01\x05\x09\x02\x06' * 2   # First 8 digits of PI twice.
 if sys.version_info[0] == 2:
     CART_MAGIC = "CART"
     TRAC_MAGIC = "TRAC"
+    text_type = unicode
 else:
     CART_MAGIC = b"CART"
     TRAC_MAGIC = b"TRAC"
+    text_type = str
+
 
 # Must be a dictionary of string to json_serialiable_python_object.
 SAMPLE_OPTIONAL_HEADER = {
@@ -68,6 +72,12 @@ SAMPLE_OPTIONAL_FOOTER = {
 }
 
 BLOCK_SIZE = 64 * 1024
+
+
+def binary(data):
+    if isinstance(data, text_type):
+        return data.encode('utf-8')
+    return data
 
 
 class InvalidCARTException(Exception):
@@ -114,7 +124,7 @@ def pack_stream(istream, ostream, optional_header=None, optional_footer=None, au
     if optional_header is None:
         optional_header = {}
 
-    arc4_key = arc4_key_override or DEFAULT_ARC4_KEY
+    arc4_key = binary(arc4_key_override or DEFAULT_ARC4_KEY)
     digesters = [algo() for algo in auto_digests]
 
     # Build the optional header first if necessary. We need to know
@@ -126,11 +136,11 @@ def pack_stream(istream, ostream, optional_header=None, optional_footer=None, au
     if optional_header:
         cipher = ARC4.new(arc4_key)
         opt_header_json = json.dumps(optional_header, separators=(",", ":"), sort_keys=True)
-        opt_header_crypt = cipher.encrypt(opt_header_json)
+        opt_header_crypt = cipher.encrypt(binary(opt_header_json))
         opt_header_len = len(opt_header_crypt)
 
     if arc4_key_override:
-        mandatory_header = struct.pack(MANDATORY_HEADER_FMT, CART_MAGIC, VERSION, RESERVED, "\x00"*16, opt_header_len)
+        mandatory_header = struct.pack(MANDATORY_HEADER_FMT, CART_MAGIC, VERSION, RESERVED, b"\x00"*16, opt_header_len)
     else:
         mandatory_header = struct.pack(MANDATORY_HEADER_FMT, CART_MAGIC, VERSION, RESERVED, arc4_key, opt_header_len)
 
@@ -174,7 +184,7 @@ def pack_stream(istream, ostream, optional_header=None, optional_footer=None, au
         # restart the RC4 stream for the footer.
         cipher = ARC4.new(arc4_key)
         opt_footer_json = json.dumps(optional_footer, separators=(",", ":"), sort_keys=True)
-        ciphered_footer = cipher.encrypt(opt_footer_json)
+        ciphered_footer = cipher.encrypt(binary(opt_footer_json))
         opt_footer_len = len(ciphered_footer)
         pos += _write(ostream, ciphered_footer)
 
@@ -204,7 +214,7 @@ def _unpack_header(istream, arc4_key_override=None):
         raise InvalidCARTException("Could not validate mandatory header")
 
     if arc4_key_override:
-        arc4_key = arc4_key_override
+        arc4_key = binary(arc4_key_override)
 
     # Read and unpack any optional header.
     optional_header = {}
@@ -213,9 +223,9 @@ def _unpack_header(istream, arc4_key_override=None):
         optional_header_crypt = istream.read(opt_header_len)
         pos += opt_header_len
         optional_header_json = cipher.decrypt(optional_header_crypt)
-        if sys.version_info[0] == 3:
-            optional_header_json = optional_header_json.decode()
         try:
+            if sys.version_info[0] == 3:
+                optional_header_json = optional_header_json.decode()
             optional_header = json.loads(optional_header_json)
         except ValueError:
             raise InvalidARC4KeyException("Could not decrypt header with the given ARC4 key")
@@ -232,7 +242,7 @@ def unpack_stream(istream, ostream, arc4_key_override=None):
     # Read / Unpack / Output the binary stream 1 block at a time.
     cipher = ARC4.new(arc4_key)
     bz = zlib.decompressobj()
-    last_chunk = ''
+    last_chunk = b''
     while True:
         crypt_chunk = istream.read(BLOCK_SIZE)
         pos += len(crypt_chunk)
@@ -365,15 +375,13 @@ def main():
     if sys.version_info[0] == 2:
         # noinspection PyUnresolvedReferences,PyPep8Naming
         import ConfigParser as configparser
-        # noinspection PyUnresolvedReferences
         import peeker
     else:
         # noinspection PyUnresolvedReferences
         import configparser
-        # noinspection PyUnresolvedReferences
         import cart.peeker as peeker
 
-    from optparse import OptionParser
+    from argparse import ArgumentParser
 
     header_defaults = {}
     delete = False
@@ -400,25 +408,27 @@ def main():
             for option in config.options(section):
                 header_defaults[option] = config.get(section, option)
 
-    usage = "usage: %prog [options] file1 file2 ... fileN"
-    parser = OptionParser(usage=usage, version=__version__)
-    parser.add_option("-d", "--delete", action="store_true", dest="delete", default=False,
-                      help="Delete original after operation succeeded")
-    parser.add_option("-f", "--force", action="store_true", dest="force", default=False,
-                      help="Replace output file if it already exists")
-    parser.add_option("-i", "--ignore", action="store_true", dest="ignore", default=False,
-                      help="Ignore RC4 key from conf file")
-    parser.add_option("-j", "--jsonmeta", dest="jsonmeta", help="Provide header metadata as json blob")
-    parser.add_option("-k", "--key", dest="key", help="Use private RC4 key (base64 encoded). "
-                                                      "Same key must be provided to unCaRT.")
-    parser.add_option("-m", "--meta", action="store_true", dest="meta", default=False,
-                      help="Keep metadata around when extracting CaRTs")
-    parser.add_option("-n", "--name", dest="filename", help="Use this value as metadata filename")
-    parser.add_option("-o", "--outfile", dest="outfile", help="Set output file")
-    parser.add_option("-s", "--showmeta", action="store_true", dest="showmeta", default=False,
-                      help="Only show the file metadata")
+    parser = ArgumentParser()
+    parser.add_argument('files', metavar='file', nargs='+')
+    parser.add_argument("-v", "--version", action='version', version=__version__)
+    parser.add_argument("-d", "--delete", action="store_true", dest="delete", default=delete,
+                        help="Delete original after operation succeeded")
+    parser.add_argument("-f", "--force", action="store_true", dest="force", default=force,
+                        help="Replace output file if it already exists")
+    parser.add_argument("-i", "--ignore", action="store_true", dest="ignore", default=False,
+                        help="Ignore RC4 key from conf file")
+    parser.add_argument("-j", "--jsonmeta", dest="jsonmeta", help="Provide header metadata as json blob")
+    parser.add_argument("-k", "--key", dest="key", help="Use private RC4 key (base64 encoded). "
+                                                        "Same key must be provided to unCaRT.")
+    parser.add_argument("-m", "--meta", action="store_true", dest="meta", default=keep_meta,
+                        help="Keep metadata around when extracting CaRTs")
+    parser.add_argument("-n", "--name", dest="filename", help="Use this value as metadata filename")
+    parser.add_argument("-o", "--outfile", dest="outfile", help="Set output file")
+    parser.add_argument("-s", "--showmeta", action="store_true", dest="showmeta", default=False,
+                        help="Only show the file metadata")
 
-    (options, args) = parser.parse_args()
+    options = parser.parse_args()
+    args = options.files
 
     stream_mode = False
     if not args:
@@ -427,10 +437,10 @@ def main():
         else:
             parser.print_help()
             exit()
-    
-    delete = options.delete or delete
-    force = options.force or force
-    keep_meta = options.meta or keep_meta
+
+    delete = options.delete
+    force = options.force
+    keep_meta = options.meta
     if options.key:
         rc4_override = base64.b64decode(options.key)
     if rc4_override:
@@ -557,7 +567,7 @@ def main():
                     meta_file_path = cur_file + ".cartmeta"
                     if os.path.exists(meta_file_path):
                         cur_header.update(json.loads(open(meta_file_path, 'rb').read()))
-                    
+
                     # noinspection PyBroadException
                     try:
                         os.makedirs(os.path.dirname(output_file))
@@ -568,7 +578,7 @@ def main():
                         cur_header['name'] = os.path.basename(cur_file)
 
                     pack_file(cur_file, output_file, optional_header=cur_header, arc4_key_override=rc4_override)
-                    
+
                     if delete:
                         os.unlink(cur_file)
                         if os.path.exists(meta_file_path):

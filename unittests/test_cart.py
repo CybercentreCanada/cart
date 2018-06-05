@@ -5,7 +5,11 @@ import struct
 import tempfile
 import unittest
 
-from StringIO import StringIO
+
+try:
+    from io import BytesIO as StringIO
+except ImportError:
+    from StringIO import StringIO
 
 
 class TestCart(unittest.TestCase):
@@ -24,7 +28,7 @@ class TestCart(unittest.TestCase):
         (magic, version, reserved, arc4_key, opt_hlen) = struct.unpack(cart.MANDATORY_HEADER_FMT,
                                                                        packed[:self.MANDATORY_HEADER_SIZE])
 
-        self.assertEqual(magic, 'CART')
+        self.assertEqual(magic, b'CART')
         self.assertEqual(version, 1)
         self.assertEqual(reserved, 0)
         self.assertEqual(arc4_key, cart.DEFAULT_ARC4_KEY)
@@ -56,7 +60,7 @@ class TestCart(unittest.TestCase):
         """
            1 byte stream, 1 element opt header, 1 element opt footer, default digests.
         """
-        test_text = 'a'
+        test_text = b'a'
         in_stream = StringIO(test_text)
         output_stream = StringIO()
         test_header = {'testkey': 'testvalue'}
@@ -80,7 +84,7 @@ class TestCart(unittest.TestCase):
         """
            128MB stream, large opt header, large opt footer, default digests + testdigester.
         """
-        test_text = '0'*1024*1024*128
+        test_text = b'0'*1024*1024*128
         in_stream = StringIO(test_text)
         output_stream = StringIO()
         test_header = {}
@@ -101,8 +105,7 @@ class TestCart(unittest.TestCase):
         self.assertEqual(test_text, plain_text)
 
     def test_simple(self):
-        from cStringIO import StringIO
-        plaintext = '0123456789' * 10000000
+        plaintext = b'0123456789' * 10000000
 
         pt_stream = StringIO(plaintext)
 
@@ -134,11 +137,10 @@ class TestCart(unittest.TestCase):
         self.assertTrue(cart.is_cart(crypt_text))
 
     def test_rc4_override(self):
-        from cStringIO import StringIO
         rc4_key = "Test Da Key !"
         tmp_header = {'name': 'hello.txt'}
         tmp_footer = {'rc4_key': rc4_key}
-        plaintext = '0123456789' * 100
+        plaintext = b'0123456789' * 100
         pt_stream = StringIO(plaintext)
         ct_stream = StringIO()
 
@@ -149,10 +151,8 @@ class TestCart(unittest.TestCase):
         ct_stream = StringIO(crypt_text)
         pt_stream = StringIO()
 
-        try:
+        with self.assertRaises(cart.InvalidARC4KeyException):
             cart.unpack_stream(ct_stream, pt_stream)
-        except ValueError, e:
-            self.assertEqual(str(e), "Invalid ARC4 Key, could not unpack header")
 
         ct_stream = StringIO(crypt_text)
         pt_stream = StringIO()
@@ -162,16 +162,13 @@ class TestCart(unittest.TestCase):
         self.assertEqual(footer, tmp_footer)
 
     def test_not_a_cart(self):
-        from cStringIO import StringIO
-        fake_cart = '0123456789' * 1000
+        fake_cart = b'0123456789' * 1000
         ct_stream = StringIO(fake_cart)
 
         ot_stream = StringIO()
 
-        try:
+        with self.assertRaises(cart.InvalidCARTException):
             cart.unpack_stream(ct_stream, ot_stream)
-        except TypeError, e:
-            self.assertEqual(str(e), "This is not valid CaRT file")
 
 
 if __name__ == '__main__':
