@@ -2,6 +2,13 @@ pipelines:
   default:
     - parallel:
         - step:
+            name: Build & Test 2.7.6
+            image: gbrowdy/python-2.7.6
+            script:
+              - python setup.py sdist
+              - pip install -f dist cart
+              - python -m unittest discover
+        - step:
             name: Build & Test 2.7
             image: python:2.7
             script:
