@@ -1,7 +1,7 @@
 
 pipelines:
   default:
-    - parallel: &default_tests
+    - parallel:
         - step:
             name: Build & Test 2.7.6
             image: gbrowdy/python-2.7.6
@@ -35,30 +35,65 @@ pipelines:
             script: *build_test
   tags:
     v*:
-      - parallel: *default_tests
+      - step:
+          name: Build Package
+          image: python:3.6
+          trigger: manual
+          deployment: production
+          script:
+            - pip install wheel
+            - python setup.py bdist_wheel --universal
+            - ls dist/
+          artifacts:
+            - dist/*
+      - parallel:
+        - step:
+            name: Test 2.7.6
+            image: gbrowdy/python-2.7.6
+            script: &deploy_test
+              - rm -rf cart setup.py
+              - pip install -f dist cart
+              - python -m unittest discover
+        - step:
+            name: Test 2.7
+            image: python:2.7
+            script: *deploy_test
+        - step:
+            name: Test 3.3
+            image: python:3.3
+            script: *deploy_test
+        - step:
+            name: Test 3.4
+            image: python:3.4
+            script: *deploy_test
+        - step:
+            name: Test 3.5
+            image: python:3.5
+            script: *deploy_test
+        - step:
+            name: Test 3.6
+            image: python:3.6
+            script: *deploy_test
+        - step:
+            name: Test 3.7-rc
+            image: python:3.7-rc
+            script: *deploy_test
       - step:
           name: Deploy to Test PyPI
           image: python:3.6
-          trigger: manual
           deployment: test
           script:
-            - pip install twine wheel
+            - pip install twine
             - python setup.py sdist
-            - python setup.py bdist_wheel --universal
             - ls dist
             - twine upload --repository-url $TEST_REPOSITORY_URL dist/*
-          artifacts:
-            - dist/*
       - step:
           name: Deploy to PyPI
           image: python:3.6
           trigger: manual
           deployment: production
           script:
-            - pip install twine wheel
+            - pip install twine
             - python setup.py sdist
-            - python setup.py bdist_wheel --universal
             - ls dist
             - twine upload dist/*
-          artifacts:
-            - dist/*
