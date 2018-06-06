@@ -42,9 +42,10 @@ pipelines:
           trigger: manual
           deployment: test
           script:
+            - pip install twine wheel
             - python setup.py sdist
+            - python setup.py bdist_wheel --universal
             - ls dist
-            - pip install twine
             - twine upload --repository-url $TEST_REPOSITORY_URL dist/*
           artifacts:
             - dist/*
@@ -54,9 +55,10 @@ pipelines:
           trigger: manual
           deployment: production
           script:
+            - pip install twine wheel
             - python setup.py sdist
+            - python setup.py bdist_wheel --universal
             - ls dist
-            - pip install twine
             - twine upload dist/*
           artifacts:
             - dist/*

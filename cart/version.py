@@ -1,4 +1,4 @@
 
 major = 1
 minor = 1
-micro = 5
+micro = 6
