@@ -42,11 +42,11 @@ pipelines:
             image: python:3.6
             trigger: manual
             deployment: test
-            script: &build_upload
+            script:
               - python setup.py sdist
               - ls dist
               - pip install twine
-              - twine dist/*
+              - twine upload --repository-url $TEST_REPOSITORY_URL dist/*
             artifacts:
               - dist/*
         - step:
@@ -54,6 +54,10 @@ pipelines:
             image: python:3.6
             trigger: manual
             deployment: production
-            script: *build_upload
+            script:
+              - python setup.py sdist
+              - ls dist
+              - pip install twine
+              - twine upload dist/*
             artifacts:
               - dist/*
