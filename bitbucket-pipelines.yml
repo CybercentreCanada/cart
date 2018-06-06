@@ -1,7 +1,7 @@
 
 pipelines:
-  default: &default_tests
-    - parallel:
+  default:
+    - parallel: &default_tests
         - step:
             name: Build & Test 2.7.6
             image: gbrowdy/python-2.7.6
@@ -35,7 +35,7 @@ pipelines:
             script: *build_test
   tags:
     v*:
-      - step: *default_tests
+      - parallel: *default_tests
       - parallel:
         - step:
             name: Deploy to Test PyPI
