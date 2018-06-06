@@ -36,28 +36,27 @@ pipelines:
   tags:
     v*:
       - parallel: *default_tests
-      - parallel:
-        - step:
-            name: Deploy to Test PyPI
-            image: python:3.6
-            trigger: manual
-            deployment: test
-            script:
-              - python setup.py sdist
-              - ls dist
-              - pip install twine
-              - twine upload --repository-url $TEST_REPOSITORY_URL dist/*
-            artifacts:
-              - dist/*
-        - step:
-            name: Deploy to PyPI
-            image: python:3.6
-            trigger: manual
-            deployment: production
-            script:
-              - python setup.py sdist
-              - ls dist
-              - pip install twine
-              - twine upload dist/*
-            artifacts:
-              - dist/*
+      - step:
+          name: Deploy to Test PyPI
+          image: python:3.6
+          trigger: manual
+          deployment: test
+          script:
+            - python setup.py sdist
+            - ls dist
+            - pip install twine
+            - twine upload --repository-url $TEST_REPOSITORY_URL dist/*
+          artifacts:
+            - dist/*
+      - step:
+          name: Deploy to PyPI
+          image: python:3.6
+          trigger: manual
+          deployment: production
+          script:
+            - python setup.py sdist
+            - ls dist
+            - pip install twine
+            - twine upload dist/*
+          artifacts:
+            - dist/*
