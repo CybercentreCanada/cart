@@ -39,7 +39,6 @@ pipelines:
           name: Build Package
           image: python:3.6
           trigger: manual
-          deployment: production
           script:
             - pip install wheel
             - python setup.py bdist_wheel --universal
