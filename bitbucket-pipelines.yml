@@ -84,7 +84,7 @@ pipelines:
             - pip install twine
             - python setup.py sdist
             - ls dist
-            - twine upload --repository-url $TEST_REPOSITORY_URL dist/*
+            - twine upload --skip-existing --repository-url $TEST_REPOSITORY_URL dist/*
       - step:
           name: Deploy to PyPI
           image: python:3.6
