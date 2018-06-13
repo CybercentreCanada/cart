@@ -371,15 +371,14 @@ def is_cart(buff):
 
 def main():
     import base64
+    import cart.peeker as peeker
 
     if sys.version_info[0] == 2:
         # noinspection PyUnresolvedReferences,PyPep8Naming
         import ConfigParser as configparser
-        import peeker
     else:
         # noinspection PyUnresolvedReferences
         import configparser
-        import cart.peeker as peeker
 
     from argparse import ArgumentParser
 
