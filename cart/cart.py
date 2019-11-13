@@ -360,8 +360,8 @@ def is_cart(buff):
     try:
         mandatory_header_len = struct.calcsize(MANDATORY_HEADER_FMT)
         mandatory_header = buff[:mandatory_header_len]
-        cart, version, reserved, _, _ = struct.unpack(MANDATORY_HEADER_FMT, mandatory_header)
-        if cart == CART_MAGIC and version == 1 and reserved == 0:
+        cart, c_version, reserved, _, _ = struct.unpack(MANDATORY_HEADER_FMT, mandatory_header)
+        if cart == CART_MAGIC and c_version == 1 and reserved == 0:
             return True
         else:
             return False
@@ -493,7 +493,8 @@ def main():
                 try:
                     cur_metadata = get_metadata_only(cur_file, arc4_key_override=rc4_override)
                 except Exception as e:
-                    print("ERR: Could not extract metadata from CaRT file '%s'. [%s]" % (cur_file, e.message))
+                    cur_metadata = {}
+                    print("ERR: Could not extract metadata from CaRT file '%s'. [%s]" % (cur_file, str(e)))
                     if len(args) > 1:
                         continue
                     else:
@@ -538,7 +539,7 @@ def main():
                             os.unlink(cur_file)
 
                     except Exception as e:
-                        print("ERR: Could not extract embedded file from CaRT file '%s'. [%s]" % (cur_file, e.message))
+                        print("ERR: Could not extract embedded file from CaRT file '%s'. [%s]" % (cur_file, str(e)))
                         if len(args) > 1:
                             continue
                         else:
