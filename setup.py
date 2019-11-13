@@ -16,7 +16,7 @@ setup(
                      "neuter malware files for distribution in the malware analyst community.",
     url='https://bitbucket.org/cse-assemblyline/cart',
     author='CSE-CST Assemblyline development team',
-    author_email='assemblyline-cse-cst@googlegroups.com',
+    author_email='assemblyline@cyber.gc.ca',
     license='MIT',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
@@ -30,7 +30,7 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
     ],
-    keywords='neutering format malware cart stix development gc canada cse-cst cse cst',
+    keywords='neutering format malware cart stix development gc canada cse-cst cse cst cccs cyber',
     packages=find_packages(exclude=['docs', 'unittests']),
     install_requires=['pycryptodome'],
     entry_points={
