@@ -532,7 +532,7 @@ def main():
                             outmeta.update(header)
                             outmeta.update(footer)
                             output_meta_file = open(output_file + ".cartmeta", "wb")
-                            output_meta_file.write(json.dumps(outmeta, sort_keys=True, indent=4))
+                            output_meta_file.write(json.dumps(outmeta, sort_keys=True, indent=4).encode("utf-8"))
                             output_meta_file.close()
 
                         if delete:
