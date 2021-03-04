@@ -217,9 +217,9 @@ def _unpack_header(istream, arc4_key_override=None):
         cipher = ARC4.new(arc4_key)
         optional_header_crypt = istream.read(opt_header_len)
         pos += opt_header_len
-        optional_header_json = cipher.decrypt(optional_header_crypt).decode()
+        optional_header_json = cipher.decrypt(optional_header_crypt)
         try:
-            optional_header = json.loads(optional_header_json)
+            optional_header = json.loads(optional_header_json.decode())
         except ValueError:
             raise InvalidARC4KeyException("Could not decrypt header with the given ARC4 key")
     return arc4_key, optional_header, pos
@@ -273,9 +273,9 @@ def unpack_stream(istream, ostream, arc4_key_override=None):
         cipher = ARC4.new(arc4_key)
         optional_crypt = last_chunk[opt_footer_offset:opt_footer_offset + opt_footer_len]
 
-        optional_footer_json = cipher.decrypt(optional_crypt).decode()
+        optional_footer_json = cipher.decrypt(optional_crypt)
         try:
-            optional_footer = json.loads(optional_footer_json)
+            optional_footer = json.loads(optional_footer_json.decode())
         except ValueError:
             raise InvalidARC4KeyException('Could not decrypt footer with the given ARC4 key')
     return optional_header, optional_footer
@@ -333,10 +333,10 @@ def get_metadata_only(input_path, arc4_key_override=None):
             fin.seek(opt_footer_pos)
             opt_footer_raw = fin.read(opt_footer_len)
             cipher = ARC4.new(arc4_key)
-            optional_footer_json = cipher.decrypt(opt_footer_raw).decode()
+            optional_footer_json = cipher.decrypt(opt_footer_raw)
 
             try:
-                optional_footer = json.loads(optional_footer_json)
+                optional_footer = json.loads(optional_footer_json.decode())
             except ValueError:
                 raise InvalidARC4KeyException("Could not decrypt footer with the given ARC4 key")
             metadata.update(optional_footer)
