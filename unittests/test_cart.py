@@ -139,7 +139,7 @@ class TestCart(unittest.TestCase):
     def test_rc4_override(self):
         rc4_key = b"Test Da Key !"
         tmp_header = {'name': 'hello.txt'}
-        tmp_footer = {'rc4_key': rc4_key}
+        tmp_footer = {'rc4_key': rc4_key.decode()}
         plaintext = b'0123456789' * 100
         pt_stream = StringIO(plaintext)
         ct_stream = StringIO()
