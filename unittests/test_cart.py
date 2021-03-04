@@ -137,7 +137,7 @@ class TestCart(unittest.TestCase):
         self.assertTrue(cart.is_cart(crypt_text))
 
     def test_rc4_override(self):
-        rc4_key = "Test Da Key !"
+        rc4_key = b"Test Da Key !"
         tmp_header = {'name': 'hello.txt'}
         tmp_footer = {'rc4_key': rc4_key}
         plaintext = b'0123456789' * 100

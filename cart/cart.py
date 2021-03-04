@@ -426,7 +426,7 @@ def main():
     if options.key:
         rc4_override = base64.b64decode(options.key)
     if rc4_override:
-        rc4_override += "\x00" * (16 - len(rc4_override))
+        rc4_override += b"\x00" * (16 - len(rc4_override))
     if options.filename:
         header_defaults['name'] = options.filename
     output_file = options.outfile
