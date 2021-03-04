@@ -391,7 +391,7 @@ def main():
                 header_defaults[option] = config.get(section, option)
 
     parser = ArgumentParser()
-    parser.add_argument('files', metavar='file', nargs='+')
+    parser.add_argument('files', metavar='file', nargs='*')
     parser.add_argument("-v", "--version", action='version', version=__version__)
     parser.add_argument("-d", "--delete", action="store_true", dest="delete", default=delete,
                         help="Delete original after operation succeeded")
@@ -445,12 +445,12 @@ def main():
         exit(2)
 
     if stream_mode:
-        input_stream = peeker.Peeker(sys.stdin)
+        input_stream = peeker.Peeker(sys.stdin.buffer)
         if output_file:
             os.makedirs(os.path.dirname(output_file), exist_ok=True)
             output_stream = open(output_file, "wb")
         else:
-            output_stream = sys.stdout
+            output_stream = sys.stdout.buffer
 
         first_bytes = input_stream.peek(65535)
         if is_cart(first_bytes):
