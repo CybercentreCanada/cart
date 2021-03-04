@@ -1,0 +1,34 @@
+name: tests
+
+trigger: ["*"]
+pr: ["*"]
+
+pool:
+  vmImage: 'ubuntu-18.04'
+
+jobs:
+- job: run_test
+  strategy:
+    matrix:
+      python3_6:
+        python.version: '3.6'
+      python3_7:
+        python.version: '3.7'
+      Python3_8:
+        python.version: '3.8'
+      Python3_9:
+        python.version: '3.9'
+
+  timeoutInMinutes: 10
+
+  steps:
+    - task: UsePythonVersion@0
+      displayName: Set python version
+      inputs:
+        versionSpec: '$(python.version)'
+    - script: |
+        python setup.py sdist
+        python -m pip install -f dist cart
+      displayName: Setup environment
+    - script: python -m unittest discover
+      displayName: Test
