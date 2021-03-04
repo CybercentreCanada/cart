@@ -46,14 +46,9 @@ MANDATORY_FOOTER_FMT = '<4sQQQ'
 VERSION = version.major
 RESERVED = 0
 DEFAULT_ARC4_KEY = b'\x03\x01\x04\x01\x05\x09\x02\x06' * 2   # First 8 digits of PI twice.
-if sys.version_info[0] == 2:
-    CART_MAGIC = "CART"
-    TRAC_MAGIC = "TRAC"
-    text_type = unicode
-else:
-    CART_MAGIC = b"CART"
-    TRAC_MAGIC = b"TRAC"
-    text_type = str
+CART_MAGIC = b"CART"
+TRAC_MAGIC = b"TRAC"
+text_type = str
 
 
 # Must be a dictionary of string to json_serialiable_python_object.
@@ -222,10 +217,8 @@ def _unpack_header(istream, arc4_key_override=None):
         cipher = ARC4.new(arc4_key)
         optional_header_crypt = istream.read(opt_header_len)
         pos += opt_header_len
-        optional_header_json = cipher.decrypt(optional_header_crypt)
+        optional_header_json = cipher.decrypt(optional_header_crypt).decode()
         try:
-            if sys.version_info[0] == 3:
-                optional_header_json = optional_header_json.decode()
             optional_header = json.loads(optional_header_json)
         except ValueError:
             raise InvalidARC4KeyException("Could not decrypt header with the given ARC4 key")
@@ -280,9 +273,7 @@ def unpack_stream(istream, ostream, arc4_key_override=None):
         cipher = ARC4.new(arc4_key)
         optional_crypt = last_chunk[opt_footer_offset:opt_footer_offset + opt_footer_len]
 
-        optional_footer_json = cipher.decrypt(optional_crypt)
-        if sys.version_info[0] == 3:
-            optional_footer_json = optional_footer_json.decode()
+        optional_footer_json = cipher.decrypt(optional_crypt).decode()
         try:
             optional_footer = json.loads(optional_footer_json)
         except ValueError:
@@ -342,10 +333,8 @@ def get_metadata_only(input_path, arc4_key_override=None):
             fin.seek(opt_footer_pos)
             opt_footer_raw = fin.read(opt_footer_len)
             cipher = ARC4.new(arc4_key)
-            optional_footer_json = cipher.decrypt(opt_footer_raw)
+            optional_footer_json = cipher.decrypt(opt_footer_raw).decode()
 
-            if sys.version_info[0] == 3:
-                optional_footer_json = optional_footer_json.decode()
             try:
                 optional_footer = json.loads(optional_footer_json)
             except ValueError:
@@ -372,13 +361,7 @@ def is_cart(buff):
 def main():
     import base64
     import cart.peeker as peeker
-
-    if sys.version_info[0] == 2:
-        # noinspection PyUnresolvedReferences,PyPep8Naming
-        import ConfigParser as configparser
-    else:
-        # noinspection PyUnresolvedReferences
-        import configparser
+    import configparser
 
     from argparse import ArgumentParser
 

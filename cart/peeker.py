@@ -1,16 +1,11 @@
-import sys
+import io
 import os
-
-if sys.version_info[0] == 2:
-    import cStringIO as io
-else:
-    import io
 
 
 class Peeker(object):
     def __init__(self, fileobj):
         self.fileobj = fileobj
-        self.buf = io.StringIO()
+        self.buf = io.BytesIO()
 
     def _append_to_buf(self, contents):
         oldpos = self.buf.tell()
@@ -33,6 +28,6 @@ class Peeker(object):
 
     def readline(self):
         line = self.buf.readline()
-        if not line.endswith('\n'):
+        if not line.endswith(b'\n'):
             line += self.fileobj.readline()
         return line

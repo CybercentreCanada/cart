@@ -3,16 +3,12 @@ pipelines:
   default:
     - parallel:
         - step:
-            name: Build & Test 2.7
-            image: python:2.7
+            name: Build & Test 3.6
+            image: python:3.6
             script: &build_test
               - python setup.py sdist
               - pip install -f dist cart
               - python -m unittest discover
-        - step:
-            name: Build & Test 3.6
-            image: python:3.6
-            script: *build_test
         - step:
             name: Build & Test 3.7
             image: python:3.7
@@ -20,6 +16,10 @@ pipelines:
         - step:
             name: Build & Test 3.8
             image: python:3.8
+            script: *build_test
+        - step:
+            name: Build & Test 3.9
+            image: python:3.9
             script: *build_test
   tags:
     v*:
@@ -34,16 +34,12 @@ pipelines:
             - dist/*
       - parallel:
         - step:
-            name: Test 2.7
-            image: python:2.7
+            name: Test 3.6
+            image: python:3.6
             script: &deploy_test
               - rm -rf cart setup.py
               - pip install -f dist cart
               - python -m unittest discover
-        - step:
-            name: Test 3.6
-            image: python:3.6
-            script: *deploy_test
         - step:
             name: Test 3.7
             image: python:3.7
@@ -52,6 +48,10 @@ pipelines:
             name: Test 3.8
             image: python:3.8
             script: *deploy_test
+          - step:
+              name: Test 3.9
+              image: python:3.9
+              script: *deploy_test
       - step:
           name: Deploy to Test PyPI
           image: python:3.7
