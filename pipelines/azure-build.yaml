@@ -84,13 +84,13 @@ stages:
       env:
         TWINE_USERNAME: $(twineUsername)
         TWINE_PASSWORD: $(twinePassword)
-#    - script: |
-#        set -xv  # Echo commands before they are run
-#        sudo env "PATH=$PATH" python -m pip install --no-cache-dir twine
-#        ls dist
-#        twine upload --skip-existing dist/*
-#      workingDirectory: $(Pipeline.Workspace)
-#      displayName: Deploy to PyPI
-#      env:
-#        TWINE_USERNAME: $(twineUsername)
-#        TWINE_PASSWORD: $(twinePassword)
+    - script: |
+        set -xv  # Echo commands before they are run
+        sudo env "PATH=$PATH" python -m pip install --no-cache-dir twine
+        ls dist
+        twine upload --skip-existing dist/*
+      workingDirectory: $(Pipeline.Workspace)
+      displayName: Deploy to PyPI
+      env:
+        TWINE_USERNAME: $(twineUsername)
+        TWINE_PASSWORD: $(twinePassword)
