@@ -5,11 +5,7 @@ import struct
 import tempfile
 import unittest
 
-
-try:
-    from io import BytesIO as StringIO
-except ImportError:
-    from StringIO import StringIO
+from io import BytesIO
 
 
 class TestCart(unittest.TestCase):
@@ -38,8 +34,8 @@ class TestCart(unittest.TestCase):
         """
            Empty input stream, empty opt header, empty opt footer, no digests.
         """
-        empty_stream = StringIO()
-        output_stream = StringIO()
+        empty_stream = BytesIO()
+        output_stream = BytesIO()
         header = footer = {}
 
         # Pack with empty everything
@@ -48,8 +44,8 @@ class TestCart(unittest.TestCase):
         self.assert_valid_mandatory_header(packed_text)
 
         # Now test unpacking the result.
-        packed_stream = StringIO(packed_text)
-        plain_stream = StringIO()
+        packed_stream = BytesIO(packed_text)
+        plain_stream = BytesIO()
         (opt_header, opt_footer) = cart.unpack_stream(packed_stream, plain_stream)
         plain_text = plain_stream.getvalue()
         self.assertEqual(opt_header, {})
@@ -61,8 +57,8 @@ class TestCart(unittest.TestCase):
            1 byte stream, 1 element opt header, 1 element opt footer, default digests.
         """
         test_text = b'a'
-        in_stream = StringIO(test_text)
-        output_stream = StringIO()
+        in_stream = BytesIO(test_text)
+        output_stream = BytesIO()
         test_header = {'testkey': 'testvalue'}
         test_footer = {'complete': 'yes'}
 
@@ -72,8 +68,8 @@ class TestCart(unittest.TestCase):
         self.assert_valid_mandatory_header(packed_text)
 
         # Now test unpacking the result.
-        packed_stream = StringIO(packed_text)
-        plain_stream = StringIO()
+        packed_stream = BytesIO(packed_text)
+        plain_stream = BytesIO()
         (opt_header, opt_footer) = cart.unpack_stream(packed_stream, plain_stream)
         plain_text = plain_stream.getvalue()
         self.assertEqual(test_header, opt_header)
@@ -85,8 +81,8 @@ class TestCart(unittest.TestCase):
            128MB stream, large opt header, large opt footer, default digests + testdigester.
         """
         test_text = b'0'*1024*1024*128
-        in_stream = StringIO(test_text)
-        output_stream = StringIO()
+        in_stream = BytesIO(test_text)
+        output_stream = BytesIO()
         test_header = {}
         test_footer = {}
 
@@ -96,8 +92,8 @@ class TestCart(unittest.TestCase):
         self.assert_valid_mandatory_header(packed_text)
 
         # Now test unpacking the result.
-        packed_stream = StringIO(packed_text)
-        plain_stream = StringIO()
+        packed_stream = BytesIO(packed_text)
+        plain_stream = BytesIO()
         (opt_header, opt_footer) = cart.unpack_stream(packed_stream, plain_stream)
         plain_text = plain_stream.getvalue()
         self.assertEqual(test_header, opt_header)
@@ -107,15 +103,15 @@ class TestCart(unittest.TestCase):
     def test_simple(self):
         plaintext = b'0123456789' * 10000000
 
-        pt_stream = StringIO(plaintext)
+        pt_stream = BytesIO(plaintext)
 
-        ct_stream = StringIO()
+        ct_stream = BytesIO()
 
         cart.pack_stream(pt_stream, ct_stream, {'name': 'hello.txt'}, {'digest': 'done'})
 
         crypt_text = ct_stream.getvalue()
-        ct_stream = StringIO(crypt_text)
-        pt_stream = StringIO()
+        ct_stream = BytesIO(crypt_text)
+        pt_stream = BytesIO()
 
         temp_file = tempfile.mkstemp()[1]
         with open(temp_file, 'wb') as f:
@@ -141,21 +137,21 @@ class TestCart(unittest.TestCase):
         tmp_header = {'name': 'hello.txt'}
         tmp_footer = {'rc4_key': rc4_key.decode()}
         plaintext = b'0123456789' * 100
-        pt_stream = StringIO(plaintext)
-        ct_stream = StringIO()
+        pt_stream = BytesIO(plaintext)
+        ct_stream = BytesIO()
 
         cart.pack_stream(pt_stream, ct_stream, optional_header=tmp_header,
                          optional_footer=tmp_footer, arc4_key_override=rc4_key)
 
         crypt_text = ct_stream.getvalue()
-        ct_stream = StringIO(crypt_text)
-        pt_stream = StringIO()
+        ct_stream = BytesIO(crypt_text)
+        pt_stream = BytesIO()
 
         with self.assertRaises(cart.InvalidARC4KeyException):
             cart.unpack_stream(ct_stream, pt_stream)
 
-        ct_stream = StringIO(crypt_text)
-        pt_stream = StringIO()
+        ct_stream = BytesIO(crypt_text)
+        pt_stream = BytesIO()
 
         (header, footer) = cart.unpack_stream(ct_stream, pt_stream, arc4_key_override=rc4_key)
         self.assertEqual(header, tmp_header)
@@ -163,9 +159,9 @@ class TestCart(unittest.TestCase):
 
     def test_not_a_cart(self):
         fake_cart = b'0123456789' * 1000
-        ct_stream = StringIO(fake_cart)
+        ct_stream = BytesIO(fake_cart)
 
-        ot_stream = StringIO()
+        ot_stream = BytesIO()
 
         with self.assertRaises(cart.InvalidCARTException):
             cart.unpack_stream(ct_stream, ot_stream)
