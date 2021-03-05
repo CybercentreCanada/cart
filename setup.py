@@ -37,4 +37,5 @@ setup(
             'cart=cart:main',
         ],
     },
+    python_requires=">=3.6",
 )
