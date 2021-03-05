@@ -77,6 +77,7 @@ stages:
     - script: |
         set -xv  # Echo commands before they are run
         sudo env "PATH=$PATH" python -m pip install --no-cache-dir twine
+        python setup.py sdist
         ls dist
         twine upload --skip-existing --repository-url $TEST_REPOSITORY_URL dist/*
       workingDirectory: $(Pipeline.Workspace)
@@ -87,6 +88,7 @@ stages:
     - script: |
         set -xv  # Echo commands before they are run
         sudo env "PATH=$PATH" python -m pip install --no-cache-dir twine
+        python setup.py sdist
         ls dist
         twine upload --skip-existing dist/*
       workingDirectory: $(Pipeline.Workspace)
