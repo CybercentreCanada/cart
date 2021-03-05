@@ -1,0 +1,95 @@
+name: build
+
+trigger:
+  tags:
+    include: ["v*"]
+pr: none
+
+pool:
+  vmImage: 'ubuntu-18.04'
+
+
+stages:
+- stage: build
+  jobs:
+  - job: build_package
+    displayName: Build Package
+    steps:
+    - task: UsePythonVersion@0
+      displayName: Set python version
+      inputs: {versionSpec: 3.8}
+    - script: |
+        sudo env "PATH=$PATH" python -m pip install --no-cache-dir -U wheel pip
+        python setup.py bdist_wheel --universal
+    - publish: $(System.DefaultWorkingDirectory)/dist/
+      artifact: dist
+    - publish: $(System.DefaultWorkingDirectory)/pipelines/
+      artifact: pipelines
+    - publish: $(System.DefaultWorkingDirectory)/unittests/
+      artifact: unittests
+- stage: test
+  jobs:
+  - job: run_test
+    strategy:
+      matrix:
+        python3_6:
+          python.version: '3.6'
+        Python3_7:
+          python.version: '3.7'
+        python3_8:
+          python.version: '3.8'
+        Python3_9:
+          python.version: '3.9'
+    timeoutInMinutes: 10
+    steps:
+    - checkout: none
+    - task: UsePythonVersion@0
+      displayName: Set python version
+      inputs:
+        versionSpec: '$(python.version)'
+    - download: current
+      artifact: dist
+    - download: current
+      artifact: pipelines
+    - download: current
+      artifact: unittests
+    - script: |
+        set -x  # Echo commands before they are run
+        sudo -E env "PATH=$PATH" python -m pip install --no-cache-dir -f $(Pipeline.Workspace)/dist/ cart
+      displayName: Install package
+    - script: python -m unittest discover
+      displayName: Test
+- stage: deploy
+  jobs:
+  - job: deploy
+    displayName: Deploy packages and containers
+    variables:
+      - group: deployment-information
+    steps:
+    - download: current
+      artifact: dist
+      # Make sure a usable version of python is used for the deployment
+    - task: UsePythonVersion@0
+      displayName: Set python version
+      inputs:
+        versionSpec: '3.8'
+    - script: |
+        set -xv  # Echo commands before they are run
+        sudo env "PATH=$PATH" python -m pip install --no-cache-dir twine
+        ls dist
+        twine upload --skip-existing --repository-url $TEST_REPOSITORY_URL dist/*
+      workingDirectory: $(Pipeline.Workspace)
+      displayName: Deploy to Test PyPI
+      env:
+        TWINE_USERNAME: $(twineUsername)
+        TWINE_PASSWORD: $(twinePassword)
+#    - script: |
+#        set -xv  # Echo commands before they are run
+#        sudo env "PATH=$PATH" python -m pip install --no-cache-dir twine
+#        ls dist
+#        twine upload --skip-existing dist/*
+#      workingDirectory: $(Pipeline.Workspace)
+#      displayName: Deploy to PyPI
+#      env:
+#        TWINE_USERNAME: $(twineUsername)
+#        TWINE_PASSWORD: $(twinePassword)
