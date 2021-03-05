@@ -58,6 +58,7 @@ stages:
         sudo -E env "PATH=$PATH" python -m pip install --no-cache-dir -f $(Pipeline.Workspace)/dist/ cart
       displayName: Install package
     - script: python -m unittest discover
+      workingDirectory: $(Pipeline.Workspace)/unittest
       displayName: Test
 - stage: deploy
   jobs:
