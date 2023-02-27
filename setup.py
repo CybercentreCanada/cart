@@ -28,6 +28,8 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
     ],
     keywords='neutering format malware cart stix development gc canada cse-cst cse cst cccs cyber',
     packages=find_packages(exclude=['docs', 'pipelines', 'unittests']),
