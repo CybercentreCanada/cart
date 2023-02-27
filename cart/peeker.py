@@ -28,6 +28,6 @@ class Peeker(object):
 
     def readline(self):
         line = self.buf.readline()
-        if not line.endswith(b'\n'):
+        if not line.endswith(b"\n"):
             line += self.fileobj.readline()
         return line
