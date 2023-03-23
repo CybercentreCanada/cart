@@ -604,7 +604,7 @@ def main():
                             backup_name = backup_name[:-5]
                         else:
                             backup_name += ".uncart"
-                        output_file = cur_metadata.get("name", backup_name)
+                        output_file = cur_metadata.get("name", backup_name).lstrip("/")
                     output_file = os.path.join(os.path.dirname(cur_file), output_file)
 
                     if os.path.exists(output_file) and not force:
