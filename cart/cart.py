@@ -5,6 +5,7 @@ import json
 import hashlib
 import os
 import struct
+import string
 import sys
 import zlib
 
@@ -422,6 +423,33 @@ def is_cart(buff):
         return False
 
 
+def strip_leading_inclusion_linux(path: str) -> str:
+    """ Removes /, ./ and ../ prefixes from paths to protect against local file inclusion"""
+    p = path.lstrip("./")
+    # If the first element of the path is hidden, we need to recover the dot as it will have been stripped
+    if p != path and path[len(path) - len(p) - 1] == ".":
+        p = f".{p}"
+    return p
+
+
+def strip_leading_inclusion_windows(path: str) -> str:
+    """ Removes C:\\, .\\ and ..\\ prefixes from paths to protect against local file inclusion"""
+    if len(path) >= 3 and path[0] in string.ascii_letters and path[1] == ":" and path[2] == "\\":
+        p = path[3:].lstrip(".\\")
+    else:
+        p = path.lstrip(".\\")
+    # If the first element of the path is hidden, we need to recover the dot as it will have been stripped
+    if p != path and path[len(path) - len(p) - 1] == ".":
+        p = f".{p}"
+    return p
+
+
+if os.name == "nt":
+    strip_leading_inclusion = strip_leading_inclusion_windows
+else:
+    strip_leading_inclusion = strip_leading_inclusion_linux
+
+
 def main():
     import base64
     import cart.peeker as peeker
@@ -604,7 +632,7 @@ def main():
                             backup_name = backup_name[:-5]
                         else:
                             backup_name += ".uncart"
-                        output_file = cur_metadata.get("name", backup_name).lstrip("/")
+                        output_file = strip_leading_inclusion(cur_metadata.get("name", backup_name))
                     output_file = os.path.join(os.path.dirname(cur_file), output_file)
 
                     if os.path.exists(output_file) and not force:
