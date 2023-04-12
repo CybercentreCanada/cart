@@ -5,7 +5,6 @@ import json
 import hashlib
 import os
 import struct
-import string
 import sys
 import zlib
 
@@ -423,48 +422,9 @@ def is_cart(buff):
         return False
 
 
-def strip_path_inclusion_linux(path: str) -> str:
-    """ Removes /, ./ and ../ from paths to protect against local file inclusion"""
-    if path == "":
-        return path
-    p = ""
-    while p != path:
-        p = path
-        path = p.replace("/../", "/")
-        path = path.replace("/./", "/")
-        path = path.replace("//", "/")
-    while path.startswith("../"):
-        path = path[3:]
-    while path.startswith("./"):
-        path = path[2:]
-    while path[0] == "/":
-        path = path[1:]
-    return path
-
-
-def strip_path_inclusion_windows(path: str) -> str:
-    """ Removes C:\\, .\\ and ..\\ from paths to protect against local file inclusion"""
-    if path == "":
-        return path
-    p = ""
-    while p != path:
-        p = path
-        path = p.replace("\\..\\", "\\")
-        path = path.replace("\\.\\", "\\")
-        path = path.replace("\\\\", "\\")
-    while path.startswith("..\\"):
-        path = path[3:]
-    while path.startswith(".\\"):
-        path = path[2:]
-    if len(path) >= 3 and path[0] in string.ascii_letters and path[1] == ":" and path[2] == "\\":
-        path = path[3:]
-    return path
-
-
-if os.name == "nt":
-    strip_path_inclusion = strip_path_inclusion_windows
-else:
-    strip_path_inclusion = strip_path_inclusion_linux
+def strip_path_inclusion(path: str, base: str) -> str:
+    path = path.replace("\\", os.path.sep).replace("/", os.path.sep)
+    return path if os.path.abspath(os.path.join(base, path)).startswith(base) else os.path.basename(path)
 
 
 def main():
@@ -643,14 +603,16 @@ def main():
                 if show_meta:
                     print(json.dumps(cur_metadata, sort_keys=True, indent=4))
                 else:
+                    cur_file_folder = os.path.dirname(cur_file)
                     if not output_file:
                         backup_name = os.path.basename(cur_file)
                         if backup_name.endswith(".cart"):
                             backup_name = backup_name[:-5]
                         else:
                             backup_name += ".uncart"
-                        output_file = strip_path_inclusion(cur_metadata.get("name", backup_name))
-                    output_file = os.path.join(os.path.dirname(cur_file), output_file)
+
+                        output_file = strip_path_inclusion(cur_metadata.get("name", backup_name), cur_file_folder)
+                    output_file = os.path.join(cur_file_folder, output_file)
 
                     if os.path.exists(output_file) and not force:
                         print("ERR: file '%s' already exists" % output_file)
