@@ -68,7 +68,7 @@ Like the optional header, CaRT's optional footer is aN OPT_FOOTER_LEN bytes RC4 
 RC4(<JSON_SERIALIZED_OPTIONAL_FOOTER>)
 ```
 
-###  Mandatory Footer (32 Bytes)
+###  Mandatory Footer (28 Bytes)
 
 CaRT ends its file with a mandatory footer which allow the format to read the footer and return the hashes 
 without reading the whole file
@@ -198,7 +198,7 @@ octets tiré de l’en-tête sérialisé json
 RC4(<JSON_SERIALIZED_OPTIONAL_FOOTER>)
 ```
 
-###  Pied de page obligatoire (32 octets)
+###  Pied de page obligatoire (28 octets)
 
 Le ficher CaRT se termine par un pied de page obligatoire qui permet au format de lire le pied de page et de renvoyer 
 les condensés numériques sans avoir à lire le fichier en entier :
