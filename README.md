@@ -123,9 +123,6 @@ force: True
 poc: Your Name
 poc_email: your.name@your.org
 ```
-
-
-
 ------------------------------------------------------------------------------------------------------------------
 
 # CaRT (Compressed and RC4 Transport)
