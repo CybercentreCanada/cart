@@ -90,23 +90,40 @@ The CaRT CLI has the following priority for its options:
 These are the options available in the CaRT CLI:
 
 ```
-Usage: cart [options] file1 file2 ... fileN
+usage: cart [options] file1 file2 ... fileN
 
-Options:
-  --version             show program's version number and exit
+            The CaRT file format is used to store/transfer malware and its associated metadata.
+
+            It neuters the malware so it cannot be executed and encrypts it so anti-virus software
+            cannot flag the CaRT file as malware.
+
+
+positional arguments:
+  file
+
+options:
   -h, --help            show this help message and exit
+  -v, --version         show program's version number and exit
+  -d, --delete          Delete original after operation succeeded
   -f, --force           Replace output file if it already exists
   -i, --ignore          Ignore RC4 key from conf file
-  -j JSONMETA, --jsonmeta=JSONMETA
+  -j JSONMETA, --jsonmeta JSONMETA
                         Provide header metadata as JSON blob
-  -k KEY, --key=KEY     Use private RC4 key (base64 encoded). Same key must be
-                        provided to unCaRT.
+  -k KEY, --key KEY     Use private RC4 key (base64 encoded). Same key must be provided to unCaRT.
   -m, --meta            Keep metadata around when extracting CaRTs
-  -n FILENAME, --name=FILENAME
+  -n FILENAME, --name FILENAME
                         Use this value as metadata filename
-  -o OUTFILE, --outfile=OUTFILE
+  -o OUTFILE, --outfile OUTFILE
                         Set output file
   -s, --showmeta        Only show the file metadata
+
+            CaRT is smart enough to determine if a file needs to be CaRTed or unCaRTed.
+
+            To CaRT an unCaRTed file: cart file1
+
+            To unCaRT a CaRTed file: cart file1
+
+            It is the same command!
 ```
 The CaRT configuration file looks like this:
 ```ini
@@ -123,6 +140,14 @@ force: True
 poc: Your Name
 poc_email: your.name@your.org
 ```
+
+## Other CaRT libraries
+
+There are also implementations of CaRT in Rust and Java `<TBD>`. Check them out below:
+
+- Rust: https://github.com/CybercentreCanada/cart-rs
+- Java: `<TBD>`
+
 ------------------------------------------------------------------------------------------------------------------
 
 # CaRT (Compressed and RC4 Transport)
@@ -219,22 +244,40 @@ Le CLI de CaRT accorde les priorités suivantes à ses options :
 
 Des options sont disponibles dans le CLI de CaRT :
 ```
-Usage : cart [options] fichier1 fichier2 ... fichierN
+usage: cart [options] fichier1 fichier2 ... fichierN
 
-Options :
-  --version             afficher le numéro de version du programme et quitter
+            The CaRT file format is used to store/transfer malware and its associated metadata.
+
+            It neuters the malware so it cannot be executed and encrypts it so anti-virus software
+            cannot flag the CaRT file as malware.
+
+
+positional arguments:
+  fichier
+
+options:
   -h, --help            afficher ce message d’aide et quitter
+  -v, --version         afficher le numéro de version du programme et quitter
+  -d, --delete          Delete original after operation succeeded
   -f, --force           remplacer le fichier de sortie s’il existe déjà
   -i, --ignore          Ignorer la clé RC4 dans le fichier conf
-  -j JSONMETA, --jsonmeta=JSONMETA
+  -j JSONMETA, --jsonmeta JSONMETA
                         Fournir les métadonnées de l’en-tête sous forme d’objet blob json
-  -k KEY, --key=KEY     Utiliser la clé RC4 privée (codé en Base64). La même clé doit être saisie pour décompresser le fichier CaRT.
+  -k KEY, --key KEY     Utiliser la clé RC4 privée (codé en Base64). La même clé doit être saisie pour décompresser le fichier CaRT.
   -m, --meta            Conserver les métadonnées lors de l’extraction des fichiers CaRT
-  -n FILENAME, --name=FILENAME
+  -n FILENAME, --name FILENAME
                         Utiliser cette valeur comme nom de fichier des métadonnées
-  -o OUTFILE, --outfile=OUTFILE
+  -o OUTFILE, --outfile OUTFILE
                         Définir le fichier de sortie
   -s, --showmeta        Afficher uniquement les métadonnées du fichier
+
+            CaRT is smart enough to determine if a file needs to be CaRTed or unCaRTed.
+
+            To CaRT an unCaRTed file: cart file1
+
+            To unCaRT a CaRTed file: cart file1
+
+            It is the same command!
 ```
 Le fichier de configuration du CaRT ressemble à ce qui suit :
 ```ini
