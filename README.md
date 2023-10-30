@@ -1,5 +1,7 @@
 # CaRT (Compressed and RC4 Transport)
 
+<a href="https://pypi.org/project/cart/#history"><img src="https://img.shields.io/pypi/v/cart.svg" alt="Latest Stable Release"></a>
+
 The CaRT file format is used to store/transfer malware and its associated metadata.
 It neuters the malware so it cannot be executed
 and encrypts it so anti-virus software cannot flag the CaRT file as malware.
