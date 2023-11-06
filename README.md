@@ -145,10 +145,10 @@ poc_email: your.name@your.org
 
 ## Other CaRT libraries
 
-There are also implementations of CaRT in Rust and Java `<TBD>`. Check them out below:
+There are also implementations of CaRT in Rust and Java. Check them out below:
 
 - Rust: https://github.com/CybercentreCanada/cart-rs
-- Java: `<TBD>`
+- Java: https://github.com/CybercentreCanada/cart-java
 
 ------------------------------------------------------------------------------------------------------------------
 
