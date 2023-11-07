@@ -246,21 +246,20 @@ Le CLI de CaRT accorde les priorités suivantes à ses options :
 
 Des options sont disponibles dans le CLI de CaRT :
 ```
-usage: cart [options] fichier1 fichier2 ... fichierN
+utilisation: cart [options] fichier1 fichier2 ... fichierN
 
-            The CaRT file format is used to store/transfer malware and its associated metadata.
+            Le format de fichier CaRT est utilisé pour enregistrer et transferer des fichiers malicieux et les métadonnées associées.
 
-            It neuters the malware so it cannot be executed and encrypts it so anti-virus software
-            cannot flag the CaRT file as malware.
+            Il permet de neutraliser le fichier malicieux afin qu'il ne puisse être exécuté et l'encrypte afin d'éviter la detection et l'effacement par les anti-virus.
 
 
-positional arguments:
+arguments positionels:
   fichier
 
 options:
   -h, --help            afficher ce message d’aide et quitter
   -v, --version         afficher le numéro de version du programme et quitter
-  -d, --delete          Delete original after operation succeeded
+  -d, --delete          supprime le fichier original après une exécution réussie
   -f, --force           remplacer le fichier de sortie s’il existe déjà
   -i, --ignore          Ignorer la clé RC4 dans le fichier conf
   -j JSONMETA, --jsonmeta JSONMETA
@@ -273,13 +272,13 @@ options:
                         Définir le fichier de sortie
   -s, --showmeta        Afficher uniquement les métadonnées du fichier
 
-            CaRT is smart enough to determine if a file needs to be CaRTed or unCaRTed.
+            CaRT est capable de déterminer si un fichier a besoin d'être CaRTé ou déCaRTé.
 
-            To CaRT an unCaRTed file: cart file1
+            Pour CaRTer un fichier déCaRTé: cart file1
 
-            To unCaRT a CaRTed file: cart file1
+            Pour déCaRTer un fichier CaRTé: cart file1
 
-            It is the same command!
+            C'est la même commande!
 ```
 Le fichier de configuration du CaRT ressemble à ce qui suit :
 ```ini
