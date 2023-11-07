@@ -295,3 +295,10 @@ force: True
 poc: Votre nom
 poc_email: votre.nom@votre.org
 ```
+
+## Autres librairies pour manipuler des fichiers avec CaRT
+
+Il y a des implémentations en Rust et en Java. Vous pouvez y accéder aux adresses suivantes:
+
+- Rust: https://github.com/CybercentreCanada/cart-rs
+- Java: https://github.com/CybercentreCanada/cart-java
