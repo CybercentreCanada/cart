@@ -1,25 +1,27 @@
 # CaRT (Compressed and RC4 Transport)
 
-The CaRT file format is used to store/transfer malware and its associated metadata. 
-It neuters the malware so it cannot be executed 
+<a href="https://pypi.org/project/cart/#history"><img src="https://img.shields.io/pypi/v/cart.svg" alt="Latest Stable Release"></a>
+
+The CaRT file format is used to store/transfer malware and its associated metadata.
+It neuters the malware so it cannot be executed
 and encrypts it so anti-virus software cannot flag the CaRT file as malware.
 
 ## Advantages
 
 * FAST: CaRT is just as fast as zipping a file
 * STREAMING: CaRT uses zlib and RC4 which allow it to encode files in streaming
-* METADATA: CaRT can store the file metadata in the same file as the file itself, the metadata can be read without 
+* METADATA: CaRT can store the file metadata in the same file as the file itself, the metadata can be read without
   reading the full file
-* HASH CALCULATION: CaRT calculates the hashes of the file while it is encoding it and store that information in the 
+* HASH CALCULATION: CaRT calculates the hashes of the file while it is encoding it and store that information in the
   footer
-* SIZE: CaRT files are usually smaller than the original files because it uses compression. (Except in the case when 
+* SIZE: CaRT files are usually smaller than the original files because it uses compression. (Except in the case when
   huge amounts of metadata are stored in the CaRT)
 
 ## Using CaRT with STIX v2
 
-Now that STIX v2 uses JSON as encoding, you can now bundle your STIX report directly in the CaRT format. 
-When CaRT encodes files, it adds metadata from `*.cartmeta` file with the same prefix of your file. 
-Therefore, if you save your STIX report to a `.cartmeta` file, the resulting CaRT file will have the 
+Now that STIX v2 uses JSON as encoding, you can now bundle your STIX report directly in the CaRT format.
+When CaRT encodes files, it adds metadata from `*.cartmeta` file with the same prefix of your file.
+Therefore, if you save your STIX report to a `.cartmeta` file, the resulting CaRT file will have the
 full STIX report embedded within it.
 
 Example:
@@ -42,9 +44,9 @@ CaRT has a mandatory header that looks like this
 ```
  4s     h         Q        16s         Q
 CART<VERSION><RESERVED><ARC4KEY><OPT_HEADER_LEN>
-```    
-Where VERSION is 1 and RESERVED is 0. In most cases the RC4 key used to decrypt the file is stored in the mandatory 
-header and is always the same thing (first 8 digit of pi twice). However, CaRT provides an option to override the key 
+```
+Where VERSION is 1 and RESERVED is 0. In most cases the RC4 key used to decrypt the file is stored in the mandatory
+header and is always the same thing (first 8 digit of pi twice). However, CaRT provides an option to override the key
 which then stores null bytes in the mandatory header. You'll then need to know the key to unCaRT the file...
 
 ### Optional Header (OPT_HEADER_LEN bytes)
@@ -56,7 +58,7 @@ RC4(<JSON_SERIALIZED_OPTIONAL_HEADER>)
 
 ### Data block (N Bytes)
 
-CaRT's data block is a zlib then RC4 block 
+CaRT's data block is a zlib then RC4 block
 ```
 RC4(ZLIB(block encoded stream))
 ```
@@ -70,43 +72,60 @@ RC4(<JSON_SERIALIZED_OPTIONAL_FOOTER>)
 
 ###  Mandatory Footer (28 Bytes)
 
-CaRT ends its file with a mandatory footer which allow the format to read the footer and return the hashes 
+CaRT ends its file with a mandatory footer which allow the format to read the footer and return the hashes
 without reading the whole file
 ```
  4s      QQ           Q
 TRAC<RESERVED><OPT_FOOTER_LEN>
 ```
 
-## Command line interface 
+## Command line interface
 
-By installing the pip package, you get access to the CaRT library and also access to the CaRT CLI. 
+By installing the pip package, you get access to the CaRT library and also access to the CaRT CLI.
 
 The CaRT CLI has the following priority for its options:
 
 * There are defaults values for all the options inside the CLI
-* Default values are overridden by options in `~/.cart/cart.cfg` 
+* Default values are overridden by options in `~/.cart/cart.cfg`
 * Values in the configuration file are overridden by CLI options
 
 These are the options available in the CaRT CLI:
 
 ```
-Usage: cart [options] file1 file2 ... fileN
+usage: cart [options] file1 file2 ... fileN
 
-Options:
-  --version             show program's version number and exit
+            The CaRT file format is used to store/transfer malware and its associated metadata.
+
+            It neuters the malware so it cannot be executed and encrypts it so anti-virus software
+            cannot flag the CaRT file as malware.
+
+
+positional arguments:
+  file
+
+options:
   -h, --help            show this help message and exit
+  -v, --version         show program's version number and exit
+  -d, --delete          Delete original after operation succeeded
   -f, --force           Replace output file if it already exists
   -i, --ignore          Ignore RC4 key from conf file
-  -j JSONMETA, --jsonmeta=JSONMETA
+  -j JSONMETA, --jsonmeta JSONMETA
                         Provide header metadata as JSON blob
-  -k KEY, --key=KEY     Use private RC4 key (base64 encoded). Same key must be
-                        provided to unCaRT.
+  -k KEY, --key KEY     Use private RC4 key (base64 encoded). Same key must be provided to unCaRT.
   -m, --meta            Keep metadata around when extracting CaRTs
-  -n FILENAME, --name=FILENAME
+  -n FILENAME, --name FILENAME
                         Use this value as metadata filename
-  -o OUTFILE, --outfile=OUTFILE
+  -o OUTFILE, --outfile OUTFILE
                         Set output file
   -s, --showmeta        Only show the file metadata
+
+            CaRT is smart enough to determine if a file needs to be CaRTed or unCaRTed.
+
+            To CaRT an unCaRTed file: cart file1
+
+            To unCaRT a CaRTed file: cart file1
+
+            It is the same command!
 ```
 The CaRT configuration file looks like this:
 ```ini
@@ -123,30 +142,38 @@ force: True
 poc: Your Name
 poc_email: your.name@your.org
 ```
+
+## Other CaRT libraries
+
+There are also implementations of CaRT in Rust and Java. Check them out below:
+
+- Rust: https://github.com/CybercentreCanada/cart-rs
+- Java: https://github.com/CybercentreCanada/cart-java
+
 ------------------------------------------------------------------------------------------------------------------
 
 # CaRT (Compressed and RC4 Transport)
 
 Le format de fichier CaRT permet de stocker et de transférer les maliciels et les métadonnées connexes.
-Il neutralise les maliciels de manière à ce qu’ils puissent être exécutés et chiffrés pour que le logiciel antivirus ne 
+Il neutralise les maliciels de manière à ce qu’ils puissent être exécutés et chiffrés pour que le logiciel antivirus ne
 signale pas le fichier CaRT comme étant un maliciel.
 
 ## Avantages
 
 * RAPIDE : Il est aussi rapide d’utiliser CaRT que de compresser un fichier.
 * DIFFUSION EN CONTINU : CaRT utilise zlib et RC4, ce qui permet de coder les fichiers en cours de diffusion.
-* MÉTADONNÉES : CaRT peut stocker les métadonnées d’un fichier dans le même fichier que le fichier lui-même; 
+* MÉTADONNÉES : CaRT peut stocker les métadonnées d’un fichier dans le même fichier que le fichier lui-même;
   les métadonnées peuvent être lues sans qu'il soit nécessaire de lire le fichier en entier.
-* CALCULS DE HACHAGE : CaRT calcule les condensés numériques du fichier parallèlement au codage du fichier, puis stocke 
+* CALCULS DE HACHAGE : CaRT calcule les condensés numériques du fichier parallèlement au codage du fichier, puis stocke
  l’information dans le pied de page.
-* TAILLE : La taille des fichiers CaRT est généralement inférieure à celle des fichiers d’origine, puisqu’ils sont 
+* TAILLE : La taille des fichiers CaRT est généralement inférieure à celle des fichiers d’origine, puisqu’ils sont
   compressés (à moins qu’une grande quantité de métadonnées aient été stockées dans le CaRT).
 
 ## Utilisation de CaRT avec STIX v2
 
-Maintenant que la version 2 de STIX utilise JSON aux fins de codage, vous pouvez grouper vos rapports STIX directement 
+Maintenant que la version 2 de STIX utilise JSON aux fins de codage, vous pouvez grouper vos rapports STIX directement
 dans le format CaRT. Lorsque CaRT code les fichiers, il ajoute les métadonnées depuis le fichier `*.cartmeta` avec le même
-préfixe que celui utilisé par votre fichier. Par conséquent, si vous enregistrez votre rapport STIX dans un fichier 
+préfixe que celui utilisé par votre fichier. Par conséquent, si vous enregistrez votre rapport STIX dans un fichier
 `.cartmeta`, le rapport complet sera intégré dans le fichier CaRT résultant.
 
 Par exemple :
@@ -171,9 +198,9 @@ CaRT comporte un en-tête obligatoire qui ressemble à ce qui suit :
  4s     h         Q        16s         Q
 CART<VERSION><RESERVED><ARC4KEY><OPT_HEADER_LEN>
 ```
-Dans cet en-tête, la valeur de VERSION est 1 et celle de RESERVED est 0. Dans la plupart des cas, la clé RC3 utilisée 
-pour déchiffrer le fichier y est stockée et elle est toujours la même (deux fois les 8 premiers chiffres 
-de la valeur pi). CaRT propose toutefois une façon de remplacer la clé, laquelle consiste à stocker des octets nuls 
+Dans cet en-tête, la valeur de VERSION est 1 et celle de RESERVED est 0. Dans la plupart des cas, la clé RC3 utilisée
+pour déchiffrer le fichier y est stockée et elle est toujours la même (deux fois les 8 premiers chiffres
+de la valeur pi). CaRT propose toutefois une façon de remplacer la clé, laquelle consiste à stocker des octets nuls
 dans l’en-tête obligatoire. Vous devrez alors connaître la clé pour décoder le fichier CaRT.
 
 ### En-tête facultatif (OPT_HEADER_LEN octets)
@@ -200,7 +227,7 @@ RC4(<JSON_SERIALIZED_OPTIONAL_FOOTER>)
 
 ###  Pied de page obligatoire (28 octets)
 
-Le ficher CaRT se termine par un pied de page obligatoire qui permet au format de lire le pied de page et de renvoyer 
+Le ficher CaRT se termine par un pied de page obligatoire qui permet au format de lire le pied de page et de renvoyer
 les condensés numériques sans avoir à lire le fichier en entier :
 ```
  4s      QQ           Q
@@ -219,22 +246,39 @@ Le CLI de CaRT accorde les priorités suivantes à ses options :
 
 Des options sont disponibles dans le CLI de CaRT :
 ```
-Usage : cart [options] fichier1 fichier2 ... fichierN
+utilisation: cart [options] fichier1 fichier2 ... fichierN
 
-Options :
-  --version             afficher le numéro de version du programme et quitter
+            Le format de fichier CaRT est utilisé pour enregistrer et transferer des fichiers malicieux et les métadonnées associées.
+
+            Il permet de neutraliser le fichier malicieux afin qu'il ne puisse être exécuté et l'encrypte afin d'éviter la detection et l'effacement par les anti-virus.
+
+
+arguments positionels:
+  fichier
+
+options:
   -h, --help            afficher ce message d’aide et quitter
+  -v, --version         afficher le numéro de version du programme et quitter
+  -d, --delete          supprime le fichier original après une exécution réussie
   -f, --force           remplacer le fichier de sortie s’il existe déjà
   -i, --ignore          Ignorer la clé RC4 dans le fichier conf
-  -j JSONMETA, --jsonmeta=JSONMETA
+  -j JSONMETA, --jsonmeta JSONMETA
                         Fournir les métadonnées de l’en-tête sous forme d’objet blob json
-  -k KEY, --key=KEY     Utiliser la clé RC4 privée (codé en Base64). La même clé doit être saisie pour décompresser le fichier CaRT.
+  -k KEY, --key KEY     Utiliser la clé RC4 privée (codé en Base64). La même clé doit être saisie pour décompresser le fichier CaRT.
   -m, --meta            Conserver les métadonnées lors de l’extraction des fichiers CaRT
-  -n FILENAME, --name=FILENAME
+  -n FILENAME, --name FILENAME
                         Utiliser cette valeur comme nom de fichier des métadonnées
-  -o OUTFILE, --outfile=OUTFILE
+  -o OUTFILE, --outfile OUTFILE
                         Définir le fichier de sortie
   -s, --showmeta        Afficher uniquement les métadonnées du fichier
+
+            CaRT est capable de déterminer si un fichier a besoin d'être CaRTé ou déCaRTé.
+
+            Pour CaRTer un fichier déCaRTé: cart file1
+
+            Pour déCaRTer un fichier CaRTé: cart file1
+
+            C'est la même commande!
 ```
 Le fichier de configuration du CaRT ressemble à ce qui suit :
 ```ini
@@ -251,3 +295,10 @@ force: True
 poc: Votre nom
 poc_email: votre.nom@votre.org
 ```
+
+## Autres librairies pour manipuler des fichiers avec CaRT
+
+Il y a des implémentations en Rust et en Java. Vous pouvez y accéder aux adresses suivantes:
+
+- Rust: https://github.com/CybercentreCanada/cart-rs
+- Java: https://github.com/CybercentreCanada/cart-java

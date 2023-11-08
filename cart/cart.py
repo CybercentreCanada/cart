@@ -1,16 +1,16 @@
 #!/usr/bin/env python
-from __future__ import print_function, absolute_import
+from __future__ import absolute_import, print_function
 
-import json
 import hashlib
+import json
 import os
 import struct
 import sys
 import zlib
+from copy import deepcopy
 
 # noinspection PyPackageRequirements
 from Crypto.Cipher import ARC4
-from copy import deepcopy
 
 import cart.version as version
 
@@ -429,10 +429,10 @@ def strip_path_inclusion(path: str, base: str) -> str:
 
 def main():
     import base64
-    import cart.peeker as peeker
     import configparser
+    from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
-    from argparse import ArgumentParser
+    import cart.peeker as peeker
 
     header_defaults = {}
     delete = False
@@ -459,7 +459,22 @@ def main():
             for option in config.options(section):
                 header_defaults[option] = config.get(section, option)
 
-    parser = ArgumentParser()
+    parser = ArgumentParser(
+        prog="cart",
+        description="""
+            The CaRT file format is used to store/transfer malware and its associated metadata.\n
+            It neuters the malware so it cannot be executed and encrypts it so anti-virus software
+            cannot flag the CaRT file as malware.
+        """,
+        epilog="""
+            CaRT is smart enough to determine if a file needs to be CaRTed or unCaRTed.\n
+            To CaRT an unCaRTed file: cart file1\n
+            To unCaRT a CaRTed file: cart file1\n
+            It is the same command!
+        """,
+        formatter_class=RawDescriptionHelpFormatter,
+        usage="%(prog)s [options] file1 file2 ... fileN"
+    )
     parser.add_argument("files", metavar="file", nargs="*")
     parser.add_argument("-v", "--version", action="version", version=__version__)
     parser.add_argument(
