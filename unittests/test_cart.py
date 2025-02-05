@@ -1,14 +1,26 @@
 #!/usr/bin/env python
 
-import cart
+import asyncio
 import struct
 import tempfile
 import unittest
-
 from io import BytesIO
+from typing import AsyncGenerator, AsyncIterable
+
+import cart
 
 
-class TestCart(unittest.TestCase):
+def async_test(f):
+    def wrapper(*args, **kwargs):
+        coro = asyncio.coroutine(f)
+        future = coro(*args, **kwargs)
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(future)
+
+    return wrapper
+
+
+class BaseTest(unittest.TestCase):
     def setUp(self):
         self.MANDATORY_HEADER_SIZE = struct.calcsize(cart.MANDATORY_HEADER_FMT)
 
@@ -28,8 +40,9 @@ class TestCart(unittest.TestCase):
         self.assertEqual(version, 1)
         self.assertEqual(reserved, 0)
         self.assertEqual(arc4_key, cart.DEFAULT_ARC4_KEY)
-        # self.assertGreaterEqual(opt_hlen, 0)
 
+
+class TestCart(BaseTest):
     def test_empty(self):
         """
         Empty input stream, empty opt header, empty opt footer, no digests.
@@ -174,6 +187,136 @@ class TestCart(unittest.TestCase):
 
         with self.assertRaises(cart.InvalidCARTException):
             cart.unpack_stream(ct_stream, ot_stream)
+
+
+class TestAsyncCart(BaseTest):
+    """Test cases for the asynchronous functionalities of cart."""
+
+    async def _convert_stream_to_async_iterable(
+        self, stream: BytesIO
+    ) -> AsyncGenerator[bytes, bytes]:
+        chunk_size = 100
+        while True:
+            data = stream.read(chunk_size)
+            if data:
+                yield data
+            else:
+                return
+
+    async def _read_all_async_iterable(
+        self, async_iterable: AsyncIterable[bytes]
+    ) -> bytes:
+        data = []
+        async for b in async_iterable:
+            data.append(b)
+        return b"".join(data)
+
+    async def _base_async_test(
+        self,
+        test_data: bytes,
+        test_header: dict,
+        test_footer: dict,
+    ):
+        # Setup Async pack cart
+        output_async_iterable = cart.async_pack_iterable(
+            self._convert_stream_to_async_iterable(BytesIO(test_data)),
+            test_header,
+            test_footer,
+            auto_digests=(),
+        )
+        # Test unpacking the result. async
+        (outstream, opt_header) = await cart.async_unpack_iterable(
+            output_async_iterable
+        )
+        plain_text = await self._read_all_async_iterable(outstream)
+        self.assertEqual(test_header, opt_header)
+        self.assertEqual(len(plain_text), len(test_data))
+
+        # Setup Async pack cart for synchronous checks
+        output_async_iterable = cart.async_pack_iterable(
+            self._convert_stream_to_async_iterable(BytesIO(test_data)),
+            test_header,
+            test_footer,
+            auto_digests=(),
+        )
+        packed_text = await self._read_all_async_iterable(output_async_iterable)
+
+        # Now test unpacking the result. synchronously
+        packed_stream = BytesIO(packed_text)
+        plain_stream = BytesIO()
+        (opt_header, opt_footer) = cart.unpack_stream(packed_stream, plain_stream)
+        plain_text = plain_stream.getvalue()
+        self.assertEqual(test_header, opt_header)
+        self.assertEqual(test_footer, opt_footer)
+        self.assertEqual(len(plain_text), len(test_data))
+
+    @async_test
+    async def test_empty(self):
+        """
+        Empty input stream, empty opt header, empty opt footer, no digests.
+        """
+        header = footer = {}
+        await self._base_async_test(b"", header, footer)
+
+    @async_test
+    async def test_small(self):
+        """
+        1 byte stream, 1 element opt header, 1 element opt footer, default digests.
+        """
+        test_text = b"a"
+        test_header = {"testkey": "testvalue"}
+        test_footer = {"complete": "yes"}
+        await self._base_async_test(test_text, test_header, test_footer)
+
+    @async_test
+    async def test_large(self):
+        """
+        128MB stream, large opt header, large opt footer, default digests + testdigester.
+        """
+        test_text = b"0" * 1024 * 1024 * 128
+        test_header = {}
+        test_footer = {}
+        await self._base_async_test(test_text, test_header, test_footer)
+
+    @async_test
+    async def test_rc4_override(self):
+        rc4_key = b"Test Da Key !"
+        test_header = {"name": "hello.txt"}
+        test_footer = {"rc4_key": rc4_key.decode()}
+        test_text = b"0123456789" * 100
+
+        output_async_iterable = cart.async_pack_iterable(
+            self._convert_stream_to_async_iterable(BytesIO(test_text)),
+            test_header,
+            test_footer,
+            auto_digests=(),
+            arc4_key_override=rc4_key,
+        )
+
+        crypt_text = await self._read_all_async_iterable(output_async_iterable)
+        ct_stream = BytesIO(crypt_text)
+        pt_stream = BytesIO()
+
+        with self.assertRaises(cart.InvalidARC4KeyException):
+            cart.unpack_stream(ct_stream, pt_stream)
+
+        ct_stream = BytesIO(crypt_text)
+        pt_stream = BytesIO()
+
+        (header, footer) = cart.unpack_stream(
+            ct_stream, pt_stream, arc4_key_override=rc4_key
+        )
+        self.assertEqual(header, test_header)
+        self.assertEqual(footer, test_footer)
+
+    @async_test
+    async def test_not_a_cart(self):
+        fake_cart = b"0123456789" * 1000
+        ct_stream = BytesIO(fake_cart)
+        with self.assertRaises(cart.InvalidCARTException):
+            await cart.async_unpack_iterable(
+                self._convert_stream_to_async_iterable(ct_stream)
+            )
 
 
 if __name__ == "__main__":
