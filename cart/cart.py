@@ -493,7 +493,7 @@ async def _async_cart_unpack_header(
             raise InvalidARC4KeyException(
                 "Could not decrypt header with the given ARC4 key"
             )
-    return arc4_key, optional_header, pos  # TODO - need to return iterable as well.
+    return arc4_key, optional_header, pos
 
 
 async def async_unpack_iterable(
