@@ -34,7 +34,7 @@ setup(
     ],
     keywords="neutering format malware cart stix development gc canada cse-cst cse cst cccs cyber",
     packages=find_packages(exclude=["docs", "pipelines", "unittests"]),
-    install_requires=["pycryptodome"],
+    install_requires=["pycryptodome", "asyncio"],
     entry_points={
         "console_scripts": [
             "cart=cart:main",
