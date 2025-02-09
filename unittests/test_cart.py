@@ -13,13 +13,9 @@ try:
     # Handle python 3.8+
     from unittest import IsolatedAsyncioTestCase
 
-    async def async_test(f):
+    def async_test(f):
         """Do nothing if IsolatedAsyncioTestCase is an option."""
-
-        async def wrapper(*args, **kwargs):
-            f(*args, **kwargs)
-
-        return wrapper
+        return f
 
 except ImportError:
     # Handle older versions of Python 3.6 and 3.7
