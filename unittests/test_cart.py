@@ -9,23 +9,39 @@ from typing import AsyncGenerator, AsyncIterable
 
 import cart
 
+try:
+    # Handle python 3.8+
+    from unittest import IsolatedAsyncioTestCase
 
-def async_test(f):
-    def wrapper(*args, **kwargs):
-        coro = asyncio.coroutine(f)
-        future = coro(*args, **kwargs)
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(future)
+    async def async_test(f):
+        """Do nothing if IsolatedAsyncioTestCase is an option."""
 
-    return wrapper
+        async def wrapper(*args, **kwargs):
+            f(*args, **kwargs)
+
+        return wrapper
+
+except ImportError:
+    # Handle older versions of Python 3.6 and 3.7
+
+    class IsolatedAsyncioTestCase(unittest.TestCase):
+        pass
+
+    def async_test(f):
+        """Handle async test cases for python 3.6 and 3.7"""
+
+        def wrapper(*args, **kwargs):
+            coro = asyncio.coroutine(f)
+            future = coro(*args, **kwargs)
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(future)
+
+        return wrapper
 
 
-class BaseTest(unittest.TestCase):
+class BaseTest(IsolatedAsyncioTestCase):
     def setUp(self):
         self.MANDATORY_HEADER_SIZE = struct.calcsize(cart.MANDATORY_HEADER_FMT)
-
-    def tearDown(self):
-        pass
 
     def assert_valid_mandatory_header(self, packed):
         if not len(packed) >= self.MANDATORY_HEADER_SIZE:
