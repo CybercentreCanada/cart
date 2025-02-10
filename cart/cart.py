@@ -2,17 +2,20 @@
 from __future__ import absolute_import, print_function
 
 import hashlib
+import io
 import json
 import os
 import struct
 import sys
 import zlib
 from copy import deepcopy
+from typing import AsyncIterable, Callable, Tuple, Union
 
 # noinspection PyPackageRequirements
 from Crypto.Cipher import ARC4
 
 import cart.version as version
+from cart.peeker import AsyncReader
 
 __version__ = "CaRT v%d.%d.%d (Python %s)" % (
     version.major,
@@ -68,7 +71,7 @@ SAMPLE_OPTIONAL_FOOTER = {
 BLOCK_SIZE = 64 * 1024
 
 
-def binary(data):
+def binary(data: Union[str, bytes]):
     if isinstance(data, text_type):
         return data.encode("utf-8")
     return data
@@ -82,7 +85,7 @@ class InvalidARC4KeyException(Exception):
     pass
 
 
-class LengthCounter(object):
+class LengthCounter:
     def __init__(self):
         self.name = "length"
         self.length = 0
@@ -90,7 +93,7 @@ class LengthCounter(object):
     def update(self, chunk):
         self.length += len(chunk)
 
-    def hexdigest(self):
+    def hexdigest(self) -> str:
         return str(self.length)
 
 
@@ -105,20 +108,24 @@ class LengthCounter(object):
 # noinspection PyUnresolvedReferences
 DEFAULT_DIGESTS = (hashlib.md5, hashlib.sha1, hashlib.sha256, LengthCounter)
 
+# --- Cart ---
 
-def _write(stream, data):
+
+def _write(stream: io.BytesIO, data: bytes) -> int:
+    """Write to a stream and return the number of bytes written."""
     stream.write(data)
     return len(data)
 
 
 def pack_stream(
-    istream,
-    ostream,
-    optional_header=None,
-    optional_footer=None,
-    auto_digests=DEFAULT_DIGESTS,
-    arc4_key_override=None,
+    istream: io.BytesIO,
+    ostream: io.BytesIO,
+    optional_header: Union[dict, None] = None,
+    optional_footer: Union[dict, None] = None,
+    auto_digests: Tuple[object] = DEFAULT_DIGESTS,
+    arc4_key_override: Union[str, bytes] = None,
 ):
+    """Cart the input stream into the output stream adding any optional metadata."""
     if optional_footer is None:
         optional_footer = {}
     if optional_header is None:
@@ -213,7 +220,9 @@ def pack_stream(
     pos += _write(ostream, mandatory_footer)
 
 
-def _unpack_header(istream, arc4_key_override=None):
+def _unpack_header(
+    istream: io.BytesIO, arc4_key_override: Union[str, bytes] = None
+) -> Tuple[Union[bytes, bytearray], dict, int]:
     # unpack to output stream, return header / footer
     # First read and unpack the mandatory header. This will tell us the RC4 key
     # and optional header length.
@@ -253,7 +262,12 @@ def _unpack_header(istream, arc4_key_override=None):
     return arc4_key, optional_header, pos
 
 
-def unpack_stream(istream, ostream, arc4_key_override=None):
+def unpack_stream(
+    istream: io.BytesIO,
+    ostream: io.BytesIO,
+    arc4_key_override: Union[str, bytes] = None,
+) -> Tuple[dict, dict]:
+    """Unpack a cart file input stream into the output stream as the original file that was carted."""
     # unpack to output stream, return header / footer
     # First read and unpack the mandatory header. This will tell us the RC4 key
     # and optional header length.
@@ -318,12 +332,12 @@ def unpack_stream(istream, ostream, arc4_key_override=None):
 
 
 def mpack_helper(
-    input_path,
-    output_path,
-    operation,
-    optional_header=None,
-    optional_footer=None,
-    arc4_key_override=None,
+    input_path: Union[str, os.PathLike],
+    output_path: Union[str, os.PathLike],
+    operation: Callable,
+    optional_header: Union[dict, None] = None,
+    optional_footer: Union[dict, None] = None,
+    arc4_key_override: Union[str, bytes] = None,
 ):
     fin = open(input_path, "rb")
     fout = open(output_path, "wb")
@@ -345,14 +359,15 @@ def mpack_helper(
 
 
 def pack_file(
-    input_path,
-    output_path,
-    optional_header=None,
-    optional_footer=None,
-    arc4_key_override=None,
+    input_path: Union[str, os.PathLike],
+    output_path: Union[str, os.PathLike],
+    optional_header: Union[dict, None] = None,
+    optional_footer: Union[dict, None] = None,
+    arc4_key_override: Union[str, bytes] = None,
 ):
+    """Cart a provided file by path into a destination filepath location."""
     # noinspection PyTypeChecker
-    return mpack_helper(
+    mpack_helper(
         input_path,
         output_path,
         pack_stream,
@@ -362,14 +377,16 @@ def pack_file(
     )
 
 
-def unpack_file(input_path, output_path, arc4_key_override=None):
+def unpack_file(input_path, output_path, arc4_key_override=None) -> Tuple[dict, dict]:
+    """Un-Cart a provided file by path into a destination filepath location."""
     # noinspection PyTypeChecker
     return mpack_helper(
         input_path, output_path, unpack_stream, arc4_key_override=arc4_key_override
     )
 
 
-def get_metadata_only(input_path, arc4_key_override=None):
+def get_metadata_only(input_path: str, arc4_key_override=None) -> dict:
+    """Get the cart metadata from a cart file."""
     metadata = {}
     with open(input_path, "rb") as fin:
         (arc4_key, optional_header, _) = _unpack_header(
@@ -406,7 +423,8 @@ def get_metadata_only(input_path, arc4_key_override=None):
     return metadata
 
 
-def is_cart(buff):
+def is_cart(buff: bytes) -> bool:
+    """Check if the provided bytes contain the cart header."""
     # noinspection PyBroadException
     try:
         mandatory_header_len = struct.calcsize(MANDATORY_HEADER_FMT)
@@ -423,11 +441,211 @@ def is_cart(buff):
 
 
 def strip_path_inclusion(path: str, base: str) -> str:
+    """Ensure path format is corrected regardless of operating system."""
     path = path.replace("\\", os.path.sep).replace("/", os.path.sep)
-    return path if os.path.abspath(os.path.join(base, path)).startswith(base) else os.path.basename(path)
+    return (
+        path
+        if os.path.abspath(os.path.join(base, path)).startswith(base)
+        else os.path.basename(path)
+    )
+
+
+# --- Async Cart ---
+
+
+async def _async_cart_unpack_header(
+    async_reader: AsyncReader, arc4_key_override=None
+) -> Tuple[Union[bytes, bytearray], dict, int]:
+    """Read a cart header and optional header and leave the AsyncReader at the start of the cart's contents."""
+    # unpack to output stream, return header / footer
+    # First read and unpack the mandatory header. This will tell us the RC4 key
+    # and optional header length.
+    # Optional header and rest of document are RC4'd
+    pos = 0
+
+    # Read and unpack the madatory header.
+    mandatory_header_len = struct.calcsize(MANDATORY_HEADER_FMT)
+    mandatory_header = await async_reader.read(mandatory_header_len)
+    pos += mandatory_header_len
+    try:
+        (_magic, _version, _reserved, arc4_key, opt_header_len) = struct.unpack(
+            MANDATORY_HEADER_FMT, mandatory_header
+        )
+    except Exception:
+        raise InvalidCARTException("Could not unpack mandatory header")
+
+    if _magic != CART_MAGIC or _version != 1 or _reserved != 0:
+        raise InvalidCARTException("Could not validate mandatory header")
+
+    if arc4_key_override:
+        arc4_key = binary(arc4_key_override)
+
+    # Read and unpack any optional header.
+    optional_header = {}
+    if opt_header_len:
+        cipher = ARC4.new(arc4_key)  # nosec B304
+        optional_header_crypt = await async_reader.read(opt_header_len)
+        pos += opt_header_len
+        optional_header_json = cipher.decrypt(optional_header_crypt)
+        try:
+            optional_header = json.loads(optional_header_json.decode())
+        except ValueError:
+            raise InvalidARC4KeyException(
+                "Could not decrypt header with the given ARC4 key"
+            )
+    return arc4_key, optional_header, pos
+
+
+async def async_unpack_iterable(
+    async_iterable_data: AsyncIterable[bytes], arc4_key_override=DEFAULT_ARC4_KEY
+) -> Tuple[AsyncIterable[bytes], dict]:
+    """Un-cart an async stream and return an asyncIterable of the original file and the optional header.
+
+    Streaming in this way discards the cart footers.
+    """
+    async_reader = AsyncReader(async_iterable_data)
+    # unpack to output stream, return header / footer
+    # First read and unpack the mandatory header. This will tell us the RC4 key
+    # and optional header length.
+    # Optional header and rest of document are RC4'd
+    (arc4_key, optional_header, _) = await _async_cart_unpack_header(
+        async_reader, arc4_key_override=arc4_key_override
+    )
+
+    async def _read_and_decrypt_cart(inner_async_reader: AsyncReader):
+        # Read / Unpack / Output the binary stream 1 block at a time.
+        cipher = ARC4.new(arc4_key)  # nosec B304
+        bz = zlib.decompressobj()
+        last_chunk = b""
+        while True:
+            crypt_chunk = await inner_async_reader.read(BLOCK_SIZE)
+            if not crypt_chunk:
+                return
+
+            zchunk = cipher.decrypt(crypt_chunk)
+            try:
+                maybe_ochunk = bz.decompress(zchunk)
+            except Exception:
+                raise InvalidCARTException("Unable to decompress payload")
+            if maybe_ochunk:
+                yield maybe_ochunk
+                last_chunk = crypt_chunk
+            else:
+                last_chunk += crypt_chunk
+
+    return _read_and_decrypt_cart(async_reader), optional_header
+
+
+async def async_pack_iterable(
+    async_iterable: AsyncIterable[bytes],
+    optional_header: Union[dict, None] = None,
+    optional_footer: Union[dict, None] = None,
+    auto_digests: Tuple = DEFAULT_DIGESTS,
+    arc4_key_override: Union[bytes, str] = None,
+) -> AsyncIterable[bytes]:
+    """Pack a file into a cart with metadata and return the output async iterable."""
+    if optional_footer is None:
+        optional_footer = {}
+    if optional_header is None:
+        optional_header = {}
+
+    async_reader = AsyncReader(async_iterable)
+
+    arc4_key = binary(arc4_key_override or DEFAULT_ARC4_KEY)
+    digesters = [algo() for algo in auto_digests]
+
+    # Build the optional header first if necessary. We need to know
+    # it's size before serializing the mandatory header.
+    opt_header_len = 0
+    opt_header_crypt = None
+    pos = 0
+
+    if optional_header:
+        cipher = ARC4.new(arc4_key)  # nosec B304
+        opt_header_json = json.dumps(
+            optional_header, separators=(",", ":"), sort_keys=True
+        )
+        opt_header_crypt = cipher.encrypt(binary(opt_header_json))
+        opt_header_len = len(opt_header_crypt)
+
+    if arc4_key_override:
+        mandatory_header = struct.pack(
+            MANDATORY_HEADER_FMT,
+            CART_MAGIC,
+            VERSION,
+            RESERVED,
+            b"\x00" * 16,
+            opt_header_len,
+        )
+    else:
+        mandatory_header = struct.pack(
+            MANDATORY_HEADER_FMT,
+            CART_MAGIC,
+            VERSION,
+            RESERVED,
+            arc4_key,
+            opt_header_len,
+        )
+
+    pos += len(mandatory_header)
+    yield mandatory_header
+
+    if opt_header_len:
+        pos += len(opt_header_crypt)
+        yield opt_header_crypt
+
+    # restart the RC4 stream for binary stream
+    cipher = ARC4.new(arc4_key)  # nosec B304
+    bz = zlib.compressobj(zlib.Z_BEST_SPEED)
+    while True:
+        ichunk = await async_reader.read(BLOCK_SIZE)
+        if not ichunk:
+            break
+        # update the various digests with this block
+        for digest in digesters:
+            digest.update(ichunk)
+
+        # compress and then cipher any resulting output blocks
+        maybe_zchunk = bz.compress(ichunk)
+        if maybe_zchunk:
+            ciphered_chunk = cipher.encrypt(maybe_zchunk)
+            pos += len(ciphered_chunk)
+            yield ciphered_chunk
+
+    # flush the compressor then cipher and output any remaining data
+    maybe_zchunk = bz.flush()
+    if maybe_zchunk:
+        cipher_chunk = cipher.encrypt(maybe_zchunk)
+        pos += len(cipher_chunk)
+        yield cipher_chunk
+
+    # insert any requests digests into the optional footer.
+    for digest in digesters:
+        optional_footer[digest.name] = digest.hexdigest()
+
+    opt_footer_pos = pos
+    opt_footer_len = 0
+    if optional_footer:
+        # restart the RC4 stream for the footer.
+        cipher = ARC4.new(arc4_key)  # nosec B304
+        opt_footer_json = json.dumps(
+            optional_footer, separators=(",", ":"), sort_keys=True
+        )
+        ciphered_footer = cipher.encrypt(binary(opt_footer_json))
+        opt_footer_len = len(ciphered_footer)
+        yield ciphered_footer
+
+    mandatory_footer = struct.pack(
+        MANDATORY_FOOTER_FMT, TRAC_MAGIC, 0, opt_footer_pos, opt_footer_len
+    )
+    yield mandatory_footer
+
+
+# --- Commandline section ---
 
 
 def main():
+    """Commandline utilities for cart."""
     import base64
     import configparser
     from argparse import ArgumentParser, RawDescriptionHelpFormatter
@@ -473,7 +691,7 @@ def main():
             It is the same command!
         """,
         formatter_class=RawDescriptionHelpFormatter,
-        usage="%(prog)s [options] file1 file2 ... fileN"
+        usage="%(prog)s [options] file1 file2 ... fileN",
     )
     parser.add_argument("files", metavar="file", nargs="*")
     parser.add_argument("-v", "--version", action="version", version=__version__)
@@ -626,7 +844,9 @@ def main():
                         else:
                             backup_name += ".uncart"
 
-                        output_file = strip_path_inclusion(cur_metadata.get("name", backup_name), cur_file_folder)
+                        output_file = strip_path_inclusion(
+                            cur_metadata.get("name", backup_name), cur_file_folder
+                        )
                     output_file = os.path.join(cur_file_folder, output_file)
 
                     if os.path.exists(output_file) and not force:
